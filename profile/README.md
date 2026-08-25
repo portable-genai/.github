@@ -195,6 +195,137 @@ aligned to MAS TRM, APRA CPS 234 and PDPA-class regimes.
 Dependencies are derived, not chosen. A small set of standing rules decides what a
 system must consume, so its dependency list follows from what it does.
 
+### The estate at a glance
+
+Every use-case box leans on the platform tier, so those dependencies are drawn as
+one thick arrow per box rather than one per repository. The thin arrows are the
+direct repository-to-repository dependencies that remain. A repository sits in the
+platform box when it belongs to the platform tier, whatever its business category.
+
+```mermaid
+flowchart LR
+  subgraph PLAT["Platform: the horizontal tier"]
+    Hrz1["agent-guardrail-gateway"]
+    Hrz5["agent-observability"]
+    Hrz3["agent-registry"]
+    Rsk1["compliance-advisory"]
+    Hrz2["enterprise-knowledge-base"]
+    Hrz7["human-review-console"]
+    Hrz9["journey-portal"]
+    Hrz4["model-quality-gate"]
+  end
+  subgraph RGC["Risk, governance and compliance"]
+    Rgc14["ai-act-conformity-pack"]
+    Rsk3["architecture-validator"]
+    Rgc11["conflicts-gifts-pad-register"]
+    Rgc15["consumer-duty-monitoring"]
+    Aud2["continuous-controls-monitoring"]
+    Rgc12["contract-obligation-extraction"]
+    H4["data-quality-governance"]
+    Aud1["internal-audit-lifecycle"]
+    Aud3["issue-remediation-capa"]
+    Mrm1["model-risk-validation"]
+    Rgc7["obligations-control-mapping"]
+    Rsk6["onprem-dlp"]
+    Rgc9["operational-resilience-mapping"]
+    Erm1["rcsa-kri-erm"]
+    Rgc8["third-party-risk-ddq"]
+    Cmp1["trade-comms-surveillance"]
+  end
+  subgraph FCC["Financial crime, fraud and cyber"]
+    G4["account-takeover-investigator"]
+    G1["aml-alert-triage"]
+    G3["app-fraud-interdiction"]
+    Doc1["cdd-sow-research"]
+    Ins1["claims-integrity-investigator"]
+    G2["sanctions-screening"]
+    G5["soc-fraud-fusion"]
+  end
+  subgraph LND["Credit and lending"]
+    Doc2["credit-memo-drafting"]
+    Doc5["loan-document-intelligence"]
+    Doc4["trade-finance-checker"]
+  end
+  subgraph OPS["Operations and back office"]
+    F5["control-room-handover"]
+    F2["disputes-chargebacks-manager"]
+    F1["recon-breaks-engine"]
+  end
+  subgraph SVC["Customer service and engagement"]
+    Doc3["cio-advisory"]
+    Doc6["complaints-review"]
+    E1["contact-centre-conversations"]
+    E3["conversation-qa-scorecard"]
+    E5["proactive-service-outreach"]
+  end
+  subgraph MKT["Marketing and customer growth"]
+    Mkt2["campaign-planner"]
+    Mkt3["creative-studio"]
+    Mkt1["market-intelligence"]
+    Mkt6["marketing-compliance-gate"]
+    Mkt5["next-best-action"]
+    Mkt4["performance-marketing-optimisation"]
+  end
+  subgraph WRK["Workforce and analyst productivity"]
+    H5["code-api-migration"]
+    H2["hr-policy-answers"]
+    H3["itsm-servicedesk-triage"]
+    H6["meeting-knowledge-capture"]
+    H1["nl2sql-analytics"]
+  end
+  RGC ==> PLAT
+  FCC ==> PLAT
+  LND ==> PLAT
+  OPS ==> PLAT
+  SVC ==> PLAT
+  MKT ==> PLAT
+  WRK ==> PLAT
+  Rgc14 --> Rgc7
+  Mkt2 --> Mkt1
+  Rgc11 --> Cmp1
+  Rgc15 --> Doc6
+  Rgc15 --> E3
+  Rgc15 --> F2
+  Rgc15 --> Mkt5
+  Aud2 --> Aud1
+  Aud2 --> Aud3
+  Aud2 --> Rgc7
+  Rgc12 --> Rgc7
+  Rgc12 --> Rgc8
+  F5 --> F1
+  E3 --> E1
+  Mkt3 --> Mkt6
+  H4 --> H1
+  Aud1 --> Aud2
+  Aud1 --> Aud3
+  Aud1 --> Rgc7
+  Aud3 --> Doc6
+  Aud3 --> Aud2
+  Aud3 --> Aud1
+  Aud3 --> Erm1
+  Hrz9 --> Doc1
+  Hrz9 --> Doc3
+  Hrz9 --> Doc2
+  Hrz9 --> Doc5
+  Hrz9 --> Doc4
+  Mrm1 --> Rgc7
+  Mkt5 --> Mkt6
+  Rgc7 --> Rsk3
+  Rgc7 --> Aud2
+  Rgc7 --> Rgc12
+  Rgc7 --> Erm1
+  Rgc9 --> Rgc8
+  Mkt4 --> Mkt2
+  E5 --> Mkt6
+  Erm1 --> Aud3
+  Erm1 --> Rgc7
+  Rgc8 --> Rgc12
+  Cmp1 --> Rgc11
+  Cmp1 --> E3
+```
+
+### The standing rules
+
 | Rule | A system that... | must depend on | for |
 |---|---|---|---|
 | **R1** | processes customer or personal data | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway) | redaction, injection defence, input and output filtering |
