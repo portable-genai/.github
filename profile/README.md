@@ -91,100 +91,136 @@ where a new service begins.
 Each repository is a complete reference implementation: a pure domain core, typed
 ports, an adapter family per profile, its own gate and its own deployment stack.
 
-### Platform
+### The business use cases: user-facing applications
 
-The shared control plane. Every vertical below consumes some of these.
+Every system in these tables is consumed directly by a named business persona, from
+the MLRO's alert queue to the credit committee's memo pack. The last column names the
+primary Gemini Enterprise services the managed profile rides, in three groups: `GE` is
+the Gemini Enterprise app (search, research, analytics), `CX` is Customer Experience
+(conversation, speech, agent assist), `AP` is the Agent Platform (agents, retrieval,
+models, events). Every service sits behind a port (P-02), and the local and on-prem
+profiles bind the same port to local adapters, so the platform is leverage rather than
+lock-in. The deterministic engine that produces each consequential number stays in the
+repository and is assigned to no platform service.
 
-| Repository | What it does |
-|---|---|
-| [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway) | Runtime policy proxy in front of any model: PII redaction, prompt-injection / jailbreak defense, input & output filtering, model routing & fallback |
-| [`agent-observability`](https://github.com/portable-genai/agent-observability) | OpenTelemetry tracing, token cost / latency / drift dashboards, PLUS compliance-grade immutable prompt & response audit (WORM, retention, redacted) |
-| [`agent-registry`](https://github.com/portable-genai/agent-registry) | Catalog / gallery, versioning, ownership + agent identity + scoped entitlements + access control; A2A / MCP interop; usage analytics |
-| [`enterprise-knowledge-base`](https://github.com/portable-genai/enterprise-knowledge-base) | ACL-aware RAG over the bank corpus with citations, residency and freshness |
-| [`human-review-console`](https://github.com/portable-genai/human-review-console) | The shared destination for every requires_human_review escalation the catalog raises: a tenant-partitioned review queue |
-| [`journey-portal`](https://github.com/portable-genai/journey-portal) | Persona-journey host portal that composes the built P1 app UIs into one UI per user via the implemented mode-1 same-origin reverse-proxy embedding |
-| [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate) | Eval / red-team harness + golden datasets + prompt versioning + model cards + MRM evidence |
+#### Risk, governance and compliance
 
-### Risk, governance and compliance
+| Repository | What it does | Primary Gemini Enterprise services |
+|---|---|---|
+| [`ai-act-conformity-pack`](https://github.com/portable-genai/ai-act-conformity-pack) | Maps each deployed AI/agent system in the Hrz3 registry to obligations under the EU AI Act, MAS FEAT/Veritas, HKMA, APRA CPS 234/230 AI guidance | AP RAG Engine: AI-Act and FEAT rule-KB grounding; AP Model Garden: conformity-narrative drafting |
+| [`architecture-validator`](https://github.com/portable-genai/architecture-validator) | Validates a project's requirements / design against the General Principles (policy-as-code) + the reg KB | AP ADK: the root validation agent; AP RAG Engine: reg-KB retrieval |
+| [`compliance-advisory`](https://github.com/portable-genai/compliance-advisory) | Q&A + use-case-specific control checklists, automated test cases and the exact questions a regulator/CRO will ask | GE Agent Search: cited regulatory Q&A for analysts; AP RAG Engine: requirement retrieval for control mappings |
+| [`conflicts-gifts-pad-register`](https://github.com/portable-genai/conflicts-gifts-pad-register) | Ingests gifts & entertainment declarations, PAD/brokerage feeds, outside-business-interest and political-donation disclosures | AP ADK: screening and declaration agents; AP Model Garden: free-text declaration reading |
+| [`consumer-duty-monitoring`](https://github.com/portable-genai/consumer-duty-monitoring) | Ingests product-governance packs, target-market definitions, fees/value-for-money data, complaints themes and sales/advice samples | CX Insights: complaint and conversation outcome signals; AP Model Garden: fair-value assessment drafting |
+| [`continuous-controls-monitoring`](https://github.com/portable-genai/continuous-controls-monitoring) | Continuously TESTS key controls against live system, transaction and config evidence on a defined cadence, scores design vs operating effectiveness | AP BigQuery/Pub-Sub event-driven agents: test-cadence triggers and evidence feeds; AP Model Garden: auditor-ready exception narration |
+| [`contract-obligation-extraction`](https://github.com/portable-genai/contract-obligation-extraction) | Reads executed and draft contracts (MSAs, SOWs, DPAs, outsourcing agreements, ISDAs) and extracts a structured register of obligations, key clauses | AP Model Garden: long-context clause and obligation extraction; AP ADK: contract-register agent tools |
+| [`data-quality-governance`](https://github.com/portable-genai/data-quality-governance) | Profiles a dataset, runs deterministic DQ, freshness, schema-drift and PII-classification checks | AP BigQuery/Pub-Sub event-driven agents: profiling feeds and DQ-check scheduling triggers; AP Model Garden: incident-narrative drafting |
+| [`internal-audit-lifecycle`](https://github.com/portable-genai/internal-audit-lifecycle) | End-to-end copilot for the internal-audit engagement lifecycle: risk-based annual planning, scoping, fieldwork test execution | AP RAG Engine: workpaper and prior-audit retrieval; AP Model Garden: planning and finding drafting |
+| [`issue-remediation-capa`](https://github.com/portable-genai/issue-remediation-capa) | OWNS the full post-finding lifecycle of audit/exam/incident issues and corrective-and-preventive actions (Aud2 DETECTS, Aud3 OWNS to closure | AP ADK: issue-assessment and CAPA agents; AP BigQuery/Pub-Sub event-driven agents: five-source issue-feed intake |
+| [`model-risk-validation`](https://github.com/portable-genai/model-risk-validation) | Drafts model-development documentation, independent-validation reports | AP Model Garden: validation-report and breach-narrative drafting; AP ADK: MRM copilot agent tools |
+| [`obligations-control-mapping`](https://github.com/portable-genai/obligations-control-mapping) | Builds and maintains the firm's regulatory inventory and is the SINGLE SYSTEM OF RECORD for the obligation->policy->control->evidence graph: | AP RAG Engine: policy, standard and control corpus retrieval; AP Model Garden: cited linkage proposals |
+| [`operational-resilience-mapping`](https://github.com/portable-genai/operational-resilience-mapping) | Builds and maintains the resilience map for each important/critical business service: ingests process docs, app-service catalogs | AP Model Garden: runbook, CMDB and contract reading; AP ADK: resilience-studio agent tools |
+| [`rcsa-kri-erm`](https://github.com/portable-genai/rcsa-kri-erm) | Operates the second-line ERM cycle: drives Risk & Control Self-Assessment (drafts inherent-risk and control descriptions in house taxonomy | AP BigQuery/Pub-Sub event-driven agents: KRI feeds and breach triggers; AP Model Garden: committee commentary drafting |
+| [`third-party-risk-ddq`](https://github.com/portable-genai/third-party-risk-ddq) | Ingests a vendor's DDQs (SIG/CAIQ-style), SOC 2 / ISO 27001 reports, financials and adverse media | GE Deep Research: vendor adverse-media research; AP RAG Engine: DDQ, SOC 2 and ISO corpus retrieval |
+| [`trade-comms-surveillance`](https://github.com/portable-genai/trade-comms-surveillance) | MOVED FROM FCC TO RGC per the SUBJECT-of-disposition rule: this surveils the firm's OWN employees and trades for conduct | CX channels & speech: voice transcription of monitored comms; CX Insights: sentiment and topic signals feeding the surveillance engine |
 
-| Repository | What it does |
-|---|---|
-| [`ai-act-conformity-pack`](https://github.com/portable-genai/ai-act-conformity-pack) | Maps each deployed AI/agent system in the Hrz3 registry to obligations under the EU AI Act, MAS FEAT/Veritas, HKMA, APRA CPS 234/230 AI guidance |
-| [`architecture-validator`](https://github.com/portable-genai/architecture-validator) | Validates a project's requirements / design against the General Principles (policy-as-code) + the reg KB |
-| [`compliance-advisory`](https://github.com/portable-genai/compliance-advisory) | Q&A + use-case-specific control checklists, automated test cases and the exact questions a regulator/CRO will ask |
-| [`conflicts-gifts-pad-register`](https://github.com/portable-genai/conflicts-gifts-pad-register) | Ingests gifts & entertainment declarations, PAD/brokerage feeds, outside-business-interest and political-donation disclosures |
-| [`consumer-duty-monitoring`](https://github.com/portable-genai/consumer-duty-monitoring) | Ingests product-governance packs, target-market definitions, fees/value-for-money data, complaints themes and sales/advice samples |
-| [`continuous-controls-monitoring`](https://github.com/portable-genai/continuous-controls-monitoring) | Continuously TESTS key controls against live system, transaction and config evidence on a defined cadence, scores design vs operating effectiveness |
-| [`contract-obligation-extraction`](https://github.com/portable-genai/contract-obligation-extraction) | Reads executed and draft contracts (MSAs, SOWs, DPAs, outsourcing agreements, ISDAs) and extracts a structured register of obligations, key clauses |
-| [`data-quality-governance`](https://github.com/portable-genai/data-quality-governance) | Profiles a dataset, runs deterministic DQ, freshness, schema-drift and PII-classification checks |
-| [`internal-audit-lifecycle`](https://github.com/portable-genai/internal-audit-lifecycle) | End-to-end copilot for the internal-audit engagement lifecycle: risk-based annual planning, scoping, fieldwork test execution |
-| [`issue-remediation-capa`](https://github.com/portable-genai/issue-remediation-capa) | OWNS the full post-finding lifecycle of audit/exam/incident issues and corrective-and-preventive actions (Aud2 DETECTS, Aud3 OWNS to closure |
-| [`model-risk-validation`](https://github.com/portable-genai/model-risk-validation) | Drafts model-development documentation, independent-validation reports |
-| [`obligations-control-mapping`](https://github.com/portable-genai/obligations-control-mapping) | Builds and maintains the firm's regulatory inventory and is the SINGLE SYSTEM OF RECORD for the obligation->policy->control->evidence graph: |
-| [`onprem-dlp`](https://github.com/portable-genai/onprem-dlp) | Open-source, CPU-only, on-prem DLP gate that scrubs data BEFORE any cloud egress |
-| [`operational-resilience-mapping`](https://github.com/portable-genai/operational-resilience-mapping) | Builds and maintains the resilience map for each important/critical business service: ingests process docs, app-service catalogs |
-| [`rcsa-kri-erm`](https://github.com/portable-genai/rcsa-kri-erm) | Operates the second-line ERM cycle: drives Risk & Control Self-Assessment (drafts inherent-risk and control descriptions in house taxonomy |
-| [`third-party-risk-ddq`](https://github.com/portable-genai/third-party-risk-ddq) | Ingests a vendor's DDQs (SIG/CAIQ-style), SOC 2 / ISO 27001 reports, financials and adverse media |
-| [`trade-comms-surveillance`](https://github.com/portable-genai/trade-comms-surveillance) | MOVED FROM FCC TO RGC per the SUBJECT-of-disposition rule: this surveils the firm's OWN employees and trades for conduct |
+#### Financial crime, fraud and cyber
 
-### Financial crime, fraud and cyber
+| Repository | What it does | Primary Gemini Enterprise services |
+|---|---|---|
+| [`account-takeover-investigator`](https://github.com/portable-genai/account-takeover-investigator) | Correlates device, session | AP BigQuery/Pub-Sub event-driven agents: login, session and device signal triggers; AP Agent Runtime: the investigation agent and its A2A surface |
+| [`aml-alert-triage`](https://github.com/portable-genai/aml-alert-triage) | Takes a deterministically-scored AML transaction-monitoring alert and produces a close / escalate-to-SAR / request-info recommendation with a | AP RAG Engine: typology retrieval grounding SAR narratives; AP BigQuery/Pub-Sub event-driven agents: alert-triggered triage runs |
+| [`app-fraud-interdiction`](https://github.com/portable-genai/app-fraud-interdiction) | Scores an in-flight payment/checkout for scam and authorised-push-payment fraud (deterministic rules | AP BigQuery/Pub-Sub event-driven agents: in-flight payment triggers; CX channels & speech: the inbound scam-call channel |
+| [`cdd-sow-research`](https://github.com/portable-genai/cdd-sow-research) | Grounded research over KYC docs + corporate registries + adverse media -> SoW narrative, risk rating, full citations and audit trail | GE Deep Research: adverse-media and registry research; GE Agent Search: KYC-corpus retrieval for the cited dossier |
+| [`claims-integrity-investigator`](https://github.com/portable-genai/claims-integrity-investigator) | Reviews an insurance claim file (FNOL, adjuster notes, photos, invoices, medical/repair reports | AP Model Garden: multimodal review of claim documents and photos; AP RAG Engine: policy-wording retrieval |
+| [`sanctions-screening`](https://github.com/portable-genai/sanctions-screening) | Resolves sanctions/PEP/watchlist and ISO 20022 / SWIFT payment-message screening hits | GE Deep Research: adverse-media research on screening hits; AP Agent Runtime: the disposition-drafting agent |
+| [`soc-fraud-fusion`](https://github.com/portable-genai/soc-fraud-fusion) | Ingests a deterministically-correlated security/fraud alert and produces a triaged incident summary | AP RAG Engine: runbook and threat-intel retrieval; AP Agent Gateway + Model Armor: injection screening before narration |
 
-| Repository | What it does |
-|---|---|
-| [`account-takeover-investigator`](https://github.com/portable-genai/account-takeover-investigator) | Correlates device, session |
-| [`aml-alert-triage`](https://github.com/portable-genai/aml-alert-triage) | Takes a deterministically-scored AML transaction-monitoring alert and produces a close / escalate-to-SAR / request-info recommendation with a |
-| [`app-fraud-interdiction`](https://github.com/portable-genai/app-fraud-interdiction) | Scores an in-flight payment/checkout for scam and authorised-push-payment fraud (deterministic rules |
-| [`cdd-sow-research`](https://github.com/portable-genai/cdd-sow-research) | Grounded research over KYC docs + corporate registries + adverse media -> SoW narrative, risk rating, full citations and audit trail |
-| [`claims-integrity-investigator`](https://github.com/portable-genai/claims-integrity-investigator) | Reviews an insurance claim file (FNOL, adjuster notes, photos, invoices, medical/repair reports |
-| [`sanctions-screening`](https://github.com/portable-genai/sanctions-screening) | Resolves sanctions/PEP/watchlist and ISO 20022 / SWIFT payment-message screening hits |
-| [`soc-fraud-fusion`](https://github.com/portable-genai/soc-fraud-fusion) | Ingests a deterministically-correlated security/fraud alert and produces a triaged incident summary |
+#### Credit and lending
 
-### Credit and lending
+| Repository | What it does | Primary Gemini Enterprise services |
+|---|---|---|
+| [`credit-memo-drafting`](https://github.com/portable-genai/credit-memo-drafting) | Financials + filings -> cited credit memo, covenant extraction, risk flags, peer comps | AP Model Garden: cited memo drafting from filings; AP RAG Engine: borrower-filings grounding |
+| [`loan-document-intelligence`](https://github.com/portable-genai/loan-document-intelligence) | Income and bank-statement extraction + cross-validation | AP Model Garden: income-figure normalisation and explanation; AP Agent Gateway + Model Armor: the PII guardrail pipeline |
+| [`trade-finance-checker`](https://github.com/portable-genai/trade-finance-checker) | Letter-of-credit vs UCP600 discrepancy detection across the document set | AP RAG Engine: governed UCP600 rule-set retrieval; AP Model Garden: examiner-narrative drafting |
 
-| Repository | What it does |
-|---|---|
-| [`credit-memo-drafting`](https://github.com/portable-genai/credit-memo-drafting) | Financials + filings -> cited credit memo, covenant extraction, risk flags, peer comps |
-| [`loan-document-intelligence`](https://github.com/portable-genai/loan-document-intelligence) | Income and bank-statement extraction + cross-validation |
-| [`trade-finance-checker`](https://github.com/portable-genai/trade-finance-checker) | Letter-of-credit vs UCP600 discrepancy detection across the document set |
+#### Operations and back office
 
-### Operations and back office
+| Repository | What it does | Primary Gemini Enterprise services |
+|---|---|---|
+| [`control-room-handover`](https://github.com/portable-genai/control-room-handover) | Aggregates queue/backlog/SLA-breach/aging across the ops systems into a deterministic scorecard, then drafts the shift-handover brief | AP BigQuery/Pub-Sub event-driven agents: shift-cadence ops-feed triggers; CX channels & speech: the optional spoken handover brief |
+| [`disputes-chargebacks-manager`](https://github.com/portable-genai/disputes-chargebacks-manager) | Forward-running dispute/chargeback lifecycle (card scheme for banking | CX Agent Studio: in-channel dispute intake; AP ADK: representment-pack drafting agents |
+| [`recon-breaks-engine`](https://github.com/portable-genai/recon-breaks-engine) | Diffs two or more financial feeds (nostro/GL vs scheme/RTGS | AP BigQuery/Pub-Sub event-driven agents: feed-arrival triggers for reconciliation runs; AP ADK: root-cause note drafting |
 
-| Repository | What it does |
-|---|---|
-| [`control-room-handover`](https://github.com/portable-genai/control-room-handover) | Aggregates queue/backlog/SLA-breach/aging across the ops systems into a deterministic scorecard, then drafts the shift-handover brief |
-| [`disputes-chargebacks-manager`](https://github.com/portable-genai/disputes-chargebacks-manager) | Forward-running dispute/chargeback lifecycle (card scheme for banking |
-| [`recon-breaks-engine`](https://github.com/portable-genai/recon-breaks-engine) | Diffs two or more financial feeds (nostro/GL vs scheme/RTGS |
+#### Customer service and engagement
 
-### Customer service and engagement
+| Repository | What it does | Primary Gemini Enterprise services |
+|---|---|---|
+| [`cio-advisory`](https://github.com/portable-genai/cio-advisory) | RAG over the bank's CIO house-view articles + the client's portfolio -> personalised, suitability-checked RM talking points (decision-support | AP RAG Engine: house-view retrieval grounding RM talking points; AP ADK: the RM briefing agent |
+| [`complaints-review`](https://github.com/portable-genai/complaints-review) | Summarise, categorise and draft regulator-ready responses from complaint / conduct files | CX Agent Assist: file summaries and drafted responses beside officers; AP RAG Engine: policy retrieval for regulator-ready drafts |
+| [`contact-centre-conversations`](https://github.com/portable-genai/contact-centre-conversations) | One contact-centre conversational platform with two separately-gated modes (absorbing ex-E1 and ex-E2 because they share one CCAI/RAG stack and | CX Agent Assist: the live whisper copilot; CX Agent Studio: gated self-service flows; CX channels & speech: streaming voice and chat |
+| [`conversation-qa-scorecard`](https://github.com/portable-genai/conversation-qa-scorecard) | Post-contact deterministic compliance/quality scorecard across 100% of contacts (script adherence, disclosure presence, sentiment | CX channels & speech: batch transcription of every contact; CX Insights: QA analytics over the scored contacts |
+| [`proactive-service-outreach`](https://github.com/portable-genai/proactive-service-outreach) | Detects operational service triggers (failed payment, delivery exception, expiring card, fraud hold, outage) and generates consent-gated | CX Agent Studio: consent-gated resolution conversations; AP BigQuery/Pub-Sub event-driven agents: operational trigger detection |
 
-| Repository | What it does |
-|---|---|
-| [`cio-advisory`](https://github.com/portable-genai/cio-advisory) | RAG over the bank's CIO house-view articles + the client's portfolio -> personalised, suitability-checked RM talking points (decision-support |
-| [`complaints-review`](https://github.com/portable-genai/complaints-review) | Summarise, categorise and draft regulator-ready responses from complaint / conduct files |
-| [`contact-centre-conversations`](https://github.com/portable-genai/contact-centre-conversations) | One contact-centre conversational platform with two separately-gated modes (absorbing ex-E1 and ex-E2 because they share one CCAI/RAG stack and |
-| [`conversation-qa-scorecard`](https://github.com/portable-genai/conversation-qa-scorecard) | Post-contact deterministic compliance/quality scorecard across 100% of contacts (script adherence, disclosure presence, sentiment |
-| [`proactive-service-outreach`](https://github.com/portable-genai/proactive-service-outreach) | Detects operational service triggers (failed payment, delivery exception, expiring card, fraud hold, outage) and generates consent-gated |
+#### Marketing and customer growth
 
-### Marketing and customer growth
+| Repository | What it does | Primary Gemini Enterprise services |
+|---|---|---|
+| [`campaign-planner`](https://github.com/portable-genai/campaign-planner) | Turns an objective and budget into a campaign plan for any vertical (banking or online retail): audience segmentation and propensity | AP Model Garden: brief and calendar drafting; AP ADK: campaign-planning agents |
+| [`creative-studio`](https://github.com/portable-genai/creative-studio) | Generates on-brand ad copy and creative variants (text + image) for a bank or retailer | AP Model Garden: Gemini copy and Imagen creative variants; AP RAG Engine: brand-guideline grounding |
+| [`market-intelligence`](https://github.com/portable-genai/market-intelligence) | Deep, cited market research and competitor analysis for a bank OR online retailer: market and segment sizing | GE Deep Research: cited market and competitor research; GE Agent Search: internal research-corpus grounding |
+| [`marketing-compliance-gate`](https://github.com/portable-genai/marketing-compliance-gate) | Reviews campaigns, creatives and offers against per-market, per-vertical advertising / consumer-protection / fair-trading rules | AP RAG Engine: per-market advertising rule-KB retrieval; AP Model Garden: finding narration |
+| [`next-best-action`](https://github.com/portable-genai/next-best-action) | Per-customer / per-shopper next-best-offer and cross-sell / up-sell of products or merchandise: propensity plus deterministic eligibility ranking | AP Model Garden: propensity and recommendation models; CX commerce agents: offer surfacing in customer journeys |
+| [`performance-marketing-optimisation`](https://github.com/portable-genai/performance-marketing-optimisation) | Measures and optimises paid and owned channels for any vertical: multi-touch attribution, ROAS / CAC, deterministic bid and budget optimisation | GE Conversational Analytics: conversational exploration of performance metrics; AP BigQuery/Pub-Sub event-driven agents: anomaly-alert triggers |
 
-| Repository | What it does |
-|---|---|
-| [`campaign-planner`](https://github.com/portable-genai/campaign-planner) | Turns an objective and budget into a campaign plan for any vertical (banking or online retail): audience segmentation and propensity |
-| [`creative-studio`](https://github.com/portable-genai/creative-studio) | Generates on-brand ad copy and creative variants (text + image) for a bank or retailer |
-| [`market-intelligence`](https://github.com/portable-genai/market-intelligence) | Deep, cited market research and competitor analysis for a bank OR online retailer: market and segment sizing |
-| [`marketing-compliance-gate`](https://github.com/portable-genai/marketing-compliance-gate) | Reviews campaigns, creatives and offers against per-market, per-vertical advertising / consumer-protection / fair-trading rules |
-| [`next-best-action`](https://github.com/portable-genai/next-best-action) | Per-customer / per-shopper next-best-offer and cross-sell / up-sell of products or merchandise: propensity plus deterministic eligibility ranking |
-| [`performance-marketing-optimisation`](https://github.com/portable-genai/performance-marketing-optimisation) | Measures and optimises paid and owned channels for any vertical: multi-touch attribution, ROAS / CAC, deterministic bid and budget optimisation |
+#### Workforce and analyst productivity
 
-### Workforce and analyst productivity
+| Repository | What it does | Primary Gemini Enterprise services |
+|---|---|---|
+| [`code-api-migration`](https://github.com/portable-genai/code-api-migration) | Plans and drafts code/API migrations (framework upgrades, deprecated-API replacement | AP Agent Garden: the code-modernisation template baseline; AP ADK: the migration agent loop over repo and CI |
+| [`hr-policy-answers`](https://github.com/portable-genai/hr-policy-answers) | Answers an HR/policy/payroll/leave question with a cited answer plus a deterministic entitlement/eligibility calculation (leave balance, allowance | GE Agent Search: cited HR-policy answers; GE connectors: governed HR document ingestion |
+| [`itsm-servicedesk-triage`](https://github.com/portable-genai/itsm-servicedesk-triage) | Triages an IT/ops ticket, classifies and routes it | GE Agent Search: runbook and KB retrieval; CX Agent Studio: conversational ticket intake |
+| [`meeting-knowledge-capture`](https://github.com/portable-genai/meeting-knowledge-capture) | Turns meeting audio/transcripts into structured cited minutes, decisions and tracked action items | CX channels & speech: diarized meeting transcription; GE connectors: task and calendar routing |
+| [`nl2sql-analytics`](https://github.com/portable-genai/nl2sql-analytics) | Answers an NL business question against a governed semantic layer (certified metrics, joins, row-level access), generates and validates SQL | GE Conversational Analytics: NL questions to governed SQL over BigQuery; GE Agent Search: data-dictionary retrieval |
 
-| Repository | What it does |
-|---|---|
-| [`code-api-migration`](https://github.com/portable-genai/code-api-migration) | Plans and drafts code/API migrations (framework upgrades, deprecated-API replacement |
-| [`hr-policy-answers`](https://github.com/portable-genai/hr-policy-answers) | Answers an HR/policy/payroll/leave question with a cited answer plus a deterministic entitlement/eligibility calculation (leave balance, allowance |
-| [`itsm-servicedesk-triage`](https://github.com/portable-genai/itsm-servicedesk-triage) | Triages an IT/ops ticket, classifies and routes it |
-| [`meeting-knowledge-capture`](https://github.com/portable-genai/meeting-knowledge-capture) | Turns meeting audio/transcripts into structured cited minutes, decisions and tracked action items |
-| [`nl2sql-analytics`](https://github.com/portable-genai/nl2sql-analytics) | Answers an NL business question against a governed semantic layer (certified metrics, joins, row-level access), generates and validates SQL |
+### Platform and control-plane services
+
+The shared control plane. Every application above consumes some of these, and none
+of them is a business use case in its own right. Where Gemini Enterprise now ships a
+named counterpart, the last column says so; the differentiation is the same in each
+case: the regulated evidence trail, the offline profile and the portability proof,
+none of which the managed service provides.
+
+| Repository | What it does | Gemini Enterprise counterpart |
+|---|---|---|
+| [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway) | Runtime policy proxy in front of any model: PII redaction, prompt-injection / jailbreak defense, input & output filtering, model routing & fallback | AP Agent Gateway + Model Armor: the managed counterpart |
+| [`agent-observability`](https://github.com/portable-genai/agent-observability) | OpenTelemetry tracing, token cost / latency / drift dashboards, PLUS compliance-grade immutable prompt & response audit (WORM, retention, redacted) | AP Agent Observability: the managed counterpart |
+| [`agent-registry`](https://github.com/portable-genai/agent-registry) | Catalog / gallery, versioning, ownership + agent identity + scoped entitlements + access control; A2A / MCP interop; usage analytics | AP Agent Registry: the managed counterpart; GE Agent Gallery: the discovery surface |
+| [`enterprise-knowledge-base`](https://github.com/portable-genai/enterprise-knowledge-base) | ACL-aware RAG over the bank corpus with citations, residency and freshness | GE Agent Search: the enterprise knowledge base counterpart |
+| [`human-review-console`](https://github.com/portable-genai/human-review-console) | The shared destination for every requires_human_review escalation the catalog raises: a tenant-partitioned review queue | n/a: no managed counterpart; the four-eyes queue is catalog IP |
+| [`journey-portal`](https://github.com/portable-genai/journey-portal) | Persona-journey host portal that composes the built P1 app UIs into one UI per user via the implemented mode-1 same-origin reverse-proxy embedding | GE app: the persona-journey hub counterpart |
+| [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate) | Eval / red-team harness + golden datasets + prompt versioning + model cards + MRM evidence | AP Agent Evaluation: the managed counterpart; AP Agent Simulation: red-team runs |
+| [`onprem-dlp`](https://github.com/portable-genai/onprem-dlp) | Open-source, CPU-only, on-prem DLP gate that scrubs data BEFORE any cloud egress | n/a: air-gapped by design |
+
+### Proposed additions for financial services
+
+Scoped in the catalog and not yet built: no repository stands behind these rows
+yet. Each would follow the same conventions, the same standing rules and the same
+platform posture as the systems above.
+
+| Id | Proposed system | Business use case | Primary Gemini Enterprise services |
+|---|---|---|---|
+| `E6` | Collections & Financial-Hardship Assistant | Consent-gated, vulnerability-aware collections and financial-hardship conversations | CX Agent Studio: deterministic-plus-generative hardship conversation flows; CX Agent Assist: vulnerability cues and required disclosures beside human collectors |
+| `F6` | Corporate-Actions Announcement & Election Processor | Reads corporate-action announcements (SWIFT MT564-style messages, vendor feeds, issuer documents) | AP BigQuery/Pub-Sub event-driven agents: announcement and position feeds with deadline clocks; AP RAG Engine: announcement-term grounding for the cited entitlement narrative |
+| `Doc7` | Credit Portfolio Early-Warning & Covenant Monitoring | Post-origination monitoring of the lending book: covenant compliance tracked against the terms Doc2 extracts at origination | AP BigQuery/Pub-Sub event-driven agents: financials, transaction and news early-warning triggers; AP RAG Engine: cited covenant-terms and adverse-news evidence |
+| `Prv1` | Data-Subject Request (DSAR/RTBF) Orchestrator | End-to-end intake, identity verification, fulfilment and response drafting for data-subject requests (access, correction, deletion/RTBF, portability | GE Agent Search: ACL-aware personal-data discovery; AP Agent Runtime: cross-system fan-out collection |
+| `Ins2` | Insurance Underwriting Intake & Risk Appraisal | Ingests commercial and life underwriting submissions (broker packs, ACORD forms, loss runs, medical and financial evidence) | AP RAG Engine: appetite-guideline and policy-wording grounding for the cited appraisal; AP ADK: submission-ingestion and triage agents |
+| `Cop2` | Regulatory Exam, RFI & Inquiry Response Orchestrator | Turns an incoming regulator exam request list, RFI | GE Agent Search: ACL-aware exam-evidence retrieval; AP Agent Runtime: deadline-tracked response workflows |
+| `Rgc10` | Regulatory Notification & Reportability Assessor (pluggable rule packs: operational + privacy + prudential + market) | Takes any incident - operational/resilience outage, payment failure, third-party disruption, control breach | AP RAG Engine: per-regime notification-rule grounding; AP Agent Runtime: notification-clock case workflows |
+| `Cop1` | Regulatory Returns QA & Reconciliation Assistant | Validates prudential and statistical regulatory returns (MAS 610/1003, APRA EFS/ARS, Solvency II QRTs | AP RAG Engine: reporting-instruction and taxonomy grounding; AP BigQuery/Pub-Sub event-driven agents: returns-vs-ledger reconciliation feeds |
+| `Erm2` | Stress-Test, ICAAP/ORSA & Recovery-Plan Narrative Studio | Assembles the qualitative narrative around quantitative stress/capital results - scenario rationale, management-action descriptions | AP RAG Engine: prior-filings and regulatory-expectation grounding; AP BigQuery/Pub-Sub event-driven agents: model-run output ingestion |
+| `Esg1` | Sustainability Disclosure Studio (ISSB/CSRD/ASRS) | Drafts the regulated climate / sustainability report by mapping governed source data and prior-year text onto the exact required datapoint taxonomy | AP RAG Engine: datapoint-taxonomy and substantiation grounding; AP ADK: the multi-framework report-assembly agent |
+| `Rgc13` | Whistleblower / Speak-Up Triage & Investigation Copilot | Intake across hotline/email/portal | AP RAG Engine: policy and related-case grounding; AP Agent Runtime: SLA-clocked confidential investigations |
 
 Systems are designed toward enterprise-grade security and compliance throughout: SSO and
 least-privilege authorization enforced server-side, full auditability, and data residency
@@ -200,7 +236,8 @@ system must consume, so its dependency list follows from what it does.
 Every use-case box leans on the platform tier, so those dependencies are drawn as
 one thick arrow per box rather than one per repository. The thin arrows are the
 direct repository-to-repository dependencies that remain. A repository sits in the
-platform box when it belongs to the platform tier, whatever its business category.
+platform box when it belongs to the platform tier or is a control-plane service,
+whatever its business category.
 
 ```mermaid
 flowchart LR
@@ -213,6 +250,7 @@ flowchart LR
     Hrz7["human-review-console"]
     Hrz9["journey-portal"]
     Hrz4["model-quality-gate"]
+    Rsk6["onprem-dlp"]
   end
   subgraph RGC["Risk, governance and compliance"]
     Rgc14["ai-act-conformity-pack"]
@@ -226,7 +264,6 @@ flowchart LR
     Aud3["issue-remediation-capa"]
     Mrm1["model-risk-validation"]
     Rgc7["obligations-control-mapping"]
-    Rsk6["onprem-dlp"]
     Rgc9["operational-resilience-mapping"]
     Erm1["rcsa-kri-erm"]
     Rgc8["third-party-risk-ddq"]
