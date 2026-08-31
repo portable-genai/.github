@@ -70,7 +70,7 @@ evidence.
 
 ## Start with the shared packages
 
-These are the pieces the systems share, versioned and installable rather than copy-pasted:
+These are the pieces the systems share, versioned and pinned rather than copy-pasted:
 
 | Package | What it carries |
 |---|---|
@@ -81,10 +81,15 @@ These are the pieces the systems share, versioned and installable rather than co
 | `consent-preference-kit` | Consent wire types and a fail-closed client for asking whether a data subject may be contacted |
 | `speech-lexicon-kit` | Pronunciation and terminology handling for voice surfaces |
 | `obligation-register-kit` | Regulatory obligation register types and coverage scoring |
+| `cost-latency-calculator` | The one cost and latency model: token-priced cost, decode-rate latency, and the pricing book a system is sized against |
 | `hex-service-template` | The template and reusable CI a new service starts from |
 
-Each installs from a version tag with no credentials required. `hex-service-template` is
-where a new service begins.
+Each is consumed from a version tag with no credentials required, and
+`hex-service-template` is where a new service begins. `cost-latency-calculator` is the one
+that runs in a browser rather than in a build: a repository sized by it ships a thin page
+that loads the engine from a pinned tag, so the calculation and the prices live in one
+place and a price change reaches all of them. Its app is public:
+[size a system's cost and latency](https://portable-genai.github.io/cost-latency-calculator/).
 
 ## The systems
 
