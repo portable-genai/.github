@@ -41,9 +41,10 @@ Hexagonal, and not decoratively:
 - **One settings file maps port to adapter.** Switching profile changes bindings, never
   domain code. There is no silent fallback to a managed adapter: an unbound port raises.
 - **The catalog id is the stable identity.** Repository names describe; ids like `Hrz1` or
-  `Doc2` are what documentation and dependency lists key on. The
-  [organization front page](https://github.com/portable-genai) resolves every id to its
-  repository and lists what each one requires.
+  `Doc2` are what the catalog rows and dependency lists key on, and each repository's own
+  documentation states its id. Public pages name repositories rather than ids: the
+  [organization front page](https://github.com/portable-genai) lists what each repository
+  requires, by name.
 
 ## The gate is the contract
 
