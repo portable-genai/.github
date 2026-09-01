@@ -291,18 +291,22 @@ Dockerfile does not `pip install "<pkg>[extra]"` unlocked.
 
 **D2. Digest-pinned base images; SHA-pinned GitHub Actions; dependabot on every
 ecosystem; dependency audit in CI.** [all]
-Here: `FROM python:3.12-slim@sha256:...`; `uses: actions/checkout@<40-char-sha> # v4`;
-`.github/dependabot.yml` (pip, npm, docker, github-actions); a CI job running
-`pip-audit` on the lockfiles + `npm audit --audit-level=high`.
-**Check:** `grep -n "FROM .*@sha256" Dockerfile`; `grep -rn "uses:" .github/workflows |
-grep -v "@[0-9a-f]\{40\}"` returns nothing; dependabot file lists all ecosystems present.
+Here: `FROM python:3.14-slim@sha256:...`; `.github/dependabot.yml` (pip, npm, docker); the
+hosted Cloud Build check running `pip-audit` on the lockfiles + `npm audit --audit-level=high`.
+There are no pinned actions to check: GitHub Actions are disabled organization-wide and the
+workflow files were retired, so `github-actions` is deliberately not a watched ecosystem.
+**Check:** `grep -n "FROM .*@sha256" Dockerfile`; the dependabot file lists every ecosystem the
+repo actually pins; the repo appears in `org-metadata/ci/gcp/repository-policy.json`, without
+which it has no gate at all.
 
 **D3. The whole gate runs offline with zero org secrets, so a fork's CI is green on
 day one.** [all]
 Lint + format check + typecheck + unit/contract tests + the eval smoke check, all under
 the offline profile.
-Here: `.github/workflows/ci.yaml` + `eval-gate.yaml`, `CDD_PROFILE: local`, no secrets.
-**Check:** fork the repo into a clean org and the default workflows pass unmodified.
+Here: the hosted Cloud Build check runs `make gate`, which contains the eval, under
+`CDD_PROFILE: local` with no secrets.
+**Check:** clone the repo into a clean environment with no credentials and no network, and
+`make gate` passes unmodified.
 
 **D4. Non-root, minimal, healthchecked container.** [infra]
 Multi-stage build, venv copied into slim runtime, dedicated uid, EXPOSE + HEALTHCHECK,
