@@ -292,9 +292,10 @@ Dockerfile does not `pip install "<pkg>[extra]"` unlocked.
 **D2. Digest-pinned base images; SHA-pinned GitHub Actions; dependabot on every
 ecosystem; dependency audit in CI.** [all]
 Here: `FROM python:3.14-slim@sha256:...`; `.github/dependabot.yml` (pip, npm, docker); the
-hosted Cloud Build check running `pip-audit` on the lockfiles + `npm audit --audit-level=high`.
-There are no pinned actions to check: GitHub Actions are disabled organization-wide and the
-workflow files were retired, so `github-actions` is deliberately not a watched ecosystem.
+hosted GitHub Actions check running `pip-audit` on the lockfiles + `npm audit --audit-level=high`.
+Actions themselves are pinned by 40-character commit, never by tag, and the organization enforces
+that with `sha_pinning_required` rather than trusting each author: a tag is a movable pointer, so
+a pinned tag is an unpinned dependency wearing a version number.
 **Check:** `grep -n "FROM .*@sha256" Dockerfile`; the dependabot file lists every ecosystem the
 repo actually pins; the repo appears in `org-metadata/ci/gcp/repository-policy.json`, without
 which it has no gate at all.
@@ -303,7 +304,7 @@ which it has no gate at all.
 day one.** [all]
 Lint + format check + typecheck + unit/contract tests + the eval smoke check, all under
 the offline profile.
-Here: the hosted Cloud Build check runs `make gate`, which contains the eval, under
+Here: the hosted GitHub Actions check runs `make gate`, which contains the eval, under
 `CDD_PROFILE: local` with no secrets.
 **Check:** clone the repo into a clean environment with no credentials and no network, and
 `make gate` passes unmodified.
