@@ -1,0 +1,28 @@
+name: probe-visibility
+on: workflow_dispatch
+permissions:
+  contents: read
+  packages: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Try every documented and undocumented visibility route
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PKG: ci-runner-python3.14-node24
+        run: |
+          set +e
+          echo "## probe" >> "$GITHUB_STEP_SUMMARY"
+          for attempt in \
+            "PATCH|/orgs/portable-genai/packages/container/$PKG|-f visibility=public" \
+            "PUT|/orgs/portable-genai/packages/container/$PKG/visibility|-f visibility=public" \
+            "PATCH|/orgs/portable-genai/packages/container/$PKG/visibility|-f visibility=public" ; do
+            m="${attempt%%|*}"; rest="${attempt#*|}"; path="${rest%%|*}"; args="${rest#*|}"
+            out=$(gh api -X "$m" "$path" $args 2>&1 | head -c 300)
+            echo "### $m $path" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"; echo "$out" >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "== $m $path => $out"
+          done
+          echo "--- can the token at least READ the package? ---"
+          gh api "/orgs/portable-genai/packages/container/$PKG" 2>&1 | head -c 400
