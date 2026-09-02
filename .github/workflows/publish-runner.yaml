@@ -1,0 +1,87 @@
+# Publishes the CI runner image the fleet's gate runs in.
+#
+# It lives HERE, in the public organization repository, for one load-bearing reason: a GHCR
+# package inherits the visibility of the repository that publishes it. Published from the
+# private catalog repository the package was created PRIVATE, anonymous pull returned 403, and
+# none of the 62 public repositories could pull the image their own gate needs. There is no REST
+# endpoint to change a package's visibility afterwards, so the fix is where it is built.
+#
+# The sources moved with it rather than being copied: ci/runner/ is now their one home, next to
+# the reusable workflow that runs them. They carry no identifier and no secret -- the catalog's
+# scrub gate is a hard precondition and reports every tree clean.
+name: publish-runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      runtime_key:
+        description: Approved Python/Node pair.
+        type: choice
+        options:
+          - python3.14-node24
+          - python3.12-node20
+        default: python3.14-node24
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out the runner sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Resolve the reviewed base digests
+        id: bases
+        env:
+          RUNTIME_KEY: ${{ inputs.runtime_key }}
+        run: |
+          set -euo pipefail
+          # BASES.md is the record of WHICH digests were reviewed. Reading them from it rather
+          # than from a workflow literal is the point of that file: the previous digests lived
+          # only in the CI project's gitignored tfvars, so deleting the project destroyed them
+          # and the rebuild had to re-derive them -- a new review decision wearing the clothes
+          # of a restoration. A workflow literal would recreate that failure in a second place.
+          py_v="${RUNTIME_KEY#python}"; py_v="${py_v%%-node*}"
+          node_v="${RUNTIME_KEY##*-node}"
+          py_digest="$(grep -oE "python:${py_v}-slim-bookworm\` \| \`sha256:[0-9a-f]{64}" ci/runner/BASES.md | grep -oE 'sha256:[0-9a-f]{64}' | head -1)"
+          node_digest="$(grep -oE "node:${node_v}-bookworm-slim\` \| \`sha256:[0-9a-f]{64}" ci/runner/BASES.md | grep -oE 'sha256:[0-9a-f]{64}' | head -1)"
+          test -n "$py_digest" || { echo "no reviewed python:${py_v} digest in BASES.md" >&2; exit 2; }
+          test -n "$node_digest" || { echo "no reviewed node:${node_v} digest in BASES.md" >&2; exit 2; }
+          echo "python_base=python:${py_v}-slim-bookworm@${py_digest}" >> "$GITHUB_OUTPUT"
+          echo "node_base=node:${node_v}-bookworm-slim@${node_digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Sign in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build, smoke-test and push
+        id: build
+        env:
+          RUNTIME_KEY: ${{ inputs.runtime_key }}
+          PYTHON_BASE: ${{ steps.bases.outputs.python_base }}
+          NODE_BASE: ${{ steps.bases.outputs.node_base }}
+        run: |
+          set -euo pipefail
+          tag="staging-$(date -u +%Y%m%dT%H%M%SZ)"
+          image="ghcr.io/${{ github.repository_owner }}/ci-runner-${RUNTIME_KEY}:${tag}"
+          IMAGE_URI="$image" bash ci/runner/build-runner.sh
+          digest="$(docker inspect --format='{{index .RepoDigests 0}}' "$image")"
+          echo "image_digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "::notice title=Runner published::$digest"
+
+      - name: Report the digest to pin
+        run: |
+          {
+            echo "### Runner published"
+            echo
+            echo '```'
+            echo "${{ steps.build.outputs.image_digest }}"
+            echo '```'
+            echo
+            echo "Only the digest may be pinned by a caller. A tag can move under a green build."
+          } >> "$GITHUB_STEP_SUMMARY"
