@@ -1,0 +1,148 @@
+# The fleet's one CI job definition. Every repository calls this; none reimplements it.
+#
+# This is the GitHub Actions executor for the same contract Cloud Build ran: the inputs below
+# are the `GRC_*` variables `run-grc-ci` reads, one for one, and the script itself is unchanged
+# and lives in the runner image. Changing what CI does means changing the runner or the policy
+# that renders the callers -- never this file per repository, which is the failure that killed
+# the previous generation of workflows.
+#
+# The gate runs via `docker run` rather than a `container:` job on purpose. A container job
+# makes GitHub own the entrypoint and the workspace permissions; running the image directly
+# reproduces Cloud Build exactly -- the checkout is mounted read-only to the runner's uid 10001,
+# which is the case `run-grc-ci` already relocates around.
+name: fleet-gate
+
+on:
+  workflow_call:
+    inputs:
+      runner_image:
+        description: Digest-pinned runner image. Never a tag.
+        type: string
+        required: true
+      job_id:
+        type: string
+        required: true
+      make_targets:
+        description: Space-separated make targets.
+        type: string
+        default: ""
+      dev_lockfile:
+        type: string
+        default: requirements-dev.lock
+      editable_install:
+        type: boolean
+        default: true
+      pythonpath:
+        type: string
+        default: ""
+      extra_lockfiles:
+        type: string
+        default: ""
+      extra_lockfiles_first:
+        type: boolean
+        default: false
+      demo_browser_required:
+        type: boolean
+        default: false
+      audit_lockfiles:
+        type: string
+        default: ""
+      runtime_lockfile:
+        type: string
+        default: ""
+      lint_gcp:
+        type: boolean
+        default: false
+      lint_gcp_paths:
+        type: string
+        default: ""
+      iap_matrix_path:
+        type: string
+        default: ""
+      npm_directory:
+        type: string
+        default: ""
+      npm_directory_first:
+        type: boolean
+        default: false
+      terraform_directory:
+        type: string
+        default: ""
+      terraform_test:
+        type: boolean
+        default: false
+      timeout_minutes:
+        # Cloud Build allowed 600s against a measured p90 of 2.0 min. Fifteen here is the same
+        # judgement with headroom for a cold image pull, not a licence for a hung build.
+        type: number
+        default: 15
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: ${{ inputs.job_id }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    steps:
+      - name: Check out the commit under test
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Refuse a runner image that is not digest-pinned
+        env:
+          RUNNER_IMAGE: ${{ inputs.runner_image }}
+        run: |
+          # A tag can move under a green build. The Cloud Build triggers enforced this with a
+          # lifecycle precondition; this is the same refusal at the same point in the contract.
+          case "$RUNNER_IMAGE" in
+            *@sha256:*) ;;
+            *) echo "runner_image must be digest-pinned, got: $RUNNER_IMAGE" >&2; exit 2 ;;
+          esac
+
+      - name: Run the gate
+        env:
+          RUNNER_IMAGE: ${{ inputs.runner_image }}
+          GRC_JOB_ID: ${{ inputs.job_id }}
+          GRC_MAKE_TARGETS: ${{ inputs.make_targets }}
+          GRC_DEV_LOCKFILE: ${{ inputs.dev_lockfile }}
+          GRC_EDITABLE_INSTALL: ${{ inputs.editable_install && 'true' || 'false' }}
+          GRC_PYTHONPATH: ${{ inputs.pythonpath }}
+          GRC_EXTRA_LOCKFILES: ${{ inputs.extra_lockfiles }}
+          GRC_EXTRA_LOCKFILES_FIRST: ${{ inputs.extra_lockfiles_first && 'true' || 'false' }}
+          GRC_DEMO_BROWSER_REQUIRED: ${{ inputs.demo_browser_required && 'true' || 'false' }}
+          GRC_AUDIT_LOCKFILES: ${{ inputs.audit_lockfiles }}
+          GRC_RUNTIME_LOCKFILE: ${{ inputs.runtime_lockfile }}
+          GRC_LINT_GCP: ${{ inputs.lint_gcp && 'true' || 'false' }}
+          GRC_LINT_GCP_PATHS: ${{ inputs.lint_gcp_paths }}
+          GRC_IAP_MATRIX_PATH: ${{ inputs.iap_matrix_path }}
+          GRC_NPM_DIRECTORY: ${{ inputs.npm_directory }}
+          GRC_NPM_DIRECTORY_FIRST: ${{ inputs.npm_directory_first && 'true' || 'false' }}
+          GRC_TERRAFORM_DIRECTORY: ${{ inputs.terraform_directory }}
+          GRC_TERRAFORM_TEST: ${{ inputs.terraform_test && 'true' || 'false' }}
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/workspace:ro" \
+            --workdir /workspace \
+            --env "REPO_NAME=${GITHUB_REPOSITORY##*/}" \
+            --env GRC_JOB_ID \
+            --env GRC_MAKE_TARGETS \
+            --env GRC_DEV_LOCKFILE \
+            --env GRC_EDITABLE_INSTALL \
+            --env GRC_PYTHONPATH \
+            --env GRC_EXTRA_LOCKFILES \
+            --env GRC_EXTRA_LOCKFILES_FIRST \
+            --env GRC_DEMO_BROWSER_REQUIRED \
+            --env GRC_AUDIT_LOCKFILES \
+            --env GRC_RUNTIME_LOCKFILE \
+            --env GRC_LINT_GCP \
+            --env GRC_LINT_GCP_PATHS \
+            --env GRC_IAP_MATRIX_PATH \
+            --env GRC_NPM_DIRECTORY \
+            --env GRC_NPM_DIRECTORY_FIRST \
+            --env GRC_TERRAFORM_DIRECTORY \
+            --env GRC_TERRAFORM_TEST \
+            "$RUNNER_IMAGE"
