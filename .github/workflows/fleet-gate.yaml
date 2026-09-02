@@ -16,7 +16,15 @@ on:
   workflow_call:
     inputs:
       runner_image:
-        description: Digest-pinned runner image. Never a tag.
+        description: Expected image ID of the reviewed runner. Never a tag.
+        type: string
+        required: true
+      runner_release_tag:
+        description: Release in portable-genai/.github holding the runner archive.
+        type: string
+        required: true
+      runner_archive_sha256:
+        description: SHA-256 of that archive, checked before it is loaded.
         type: string
         required: true
       job_id:
@@ -91,16 +99,44 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Refuse a runner image that is not digest-pinned
+      - name: Fetch, verify and load the reviewed runner image
         env:
           RUNNER_IMAGE: ${{ inputs.runner_image }}
+          RELEASE_TAG: ${{ inputs.runner_release_tag }}
+          ARCHIVE_SHA: ${{ inputs.runner_archive_sha256 }}
         run: |
-          # A tag can move under a green build. The Cloud Build triggers enforced this with a
-          # lifecycle precondition; this is the same refusal at the same point in the contract.
+          set -euo pipefail
+          # The image is distributed as a release asset because an organization GHCR package is
+          # created private and no API can change that, so the fleet's public repositories could
+          # never pull it. A release asset on a public repository is anonymously downloadable.
+          #
+          # Distribution changed; the refusal did not. A tag can move under a green build, so the
+          # archive is checked against a pinned SHA-256 BEFORE it is loaded, and the loaded image
+          # is then checked against the pinned image ID. Either mismatch fails the build rather
+          # than running something nobody reviewed.
           case "$RUNNER_IMAGE" in
-            *@sha256:*) ;;
-            *) echo "runner_image must be digest-pinned, got: $RUNNER_IMAGE" >&2; exit 2 ;;
+            sha256:*) ;;
+            *) echo "runner_image must be a sha256: image id, got: $RUNNER_IMAGE" >&2; exit 2 ;;
           esac
+          case "$ARCHIVE_SHA" in
+            ????????????????????????????????????????????????????????????????) ;;
+            *) echo "runner_archive_sha256 must be 64 hex characters" >&2; exit 2 ;;
+          esac
+          archive="ci-runner.tar.gz"
+          url="https://github.com/portable-genai/.github/releases/download/${RELEASE_TAG}/ci-runner-${RELEASE_TAG#runner-}.tar.gz"
+          curl -fsSL --retry 3 --retry-delay 2 -o "$archive" "$url"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          if [ "$actual" != "$ARCHIVE_SHA" ]; then
+            echo "runner archive sha256 mismatch: expected $ARCHIVE_SHA, got $actual" >&2
+            exit 2
+          fi
+          docker load --input "$archive"
+          if ! docker image inspect "$RUNNER_IMAGE" >/dev/null 2>&1; then
+            echo "loaded archive does not contain the pinned image $RUNNER_IMAGE" >&2
+            docker images --no-trunc --format '  present: {{.ID}} {{.Repository}}:{{.Tag}}' >&2
+            exit 2
+          fi
+          echo "verified and loaded $RUNNER_IMAGE"
 
       - name: Run the gate
         env:
