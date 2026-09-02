@@ -58,6 +58,12 @@ docker buildx build \
 # silently-unchanged npm is exactly the failure this build had.
 docker run --rm --entrypoint /bin/sh "$image_uri" -c \
   "python3 -c 'import sys; assert sys.version_info[:2] == tuple(map(int, \"${python_version}\".split(\".\")))' && test \"\$(node --version | cut -d. -f1)\" = v${node_version} && test \"\$(npm --version)\" = ${npm_version}"
-docker push "$image_uri"
-
-echo "Resolve, scan, and record the immutable digest for $runtime_key before phase two."
+# GRC_SKIP_PUSH builds and smoke-tests without publishing to a registry. The fleet distributes
+# this image as a release asset, because an organization GHCR package is created private and no
+# API can change that -- so there is nothing to push to that the gate could anonymously pull.
+if [[ "${GRC_SKIP_PUSH:-0}" == "1" ]]; then
+  echo "Built and smoke-tested $image_uri; skipping push (GRC_SKIP_PUSH=1)."
+else
+  docker push "$image_uri"
+  echo "Resolve, scan, and record the immutable digest for $runtime_key before phase two."
+fi

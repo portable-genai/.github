@@ -1,14 +1,17 @@
-# Publishes the CI runner image the fleet's gate runs in.
+# Publishes the CI runner image the fleet's gate runs in, as a RELEASE ASSET rather than to a
+# container registry.
 #
-# It lives HERE, in the public organization repository, for one load-bearing reason: a GHCR
-# package inherits the visibility of the repository that publishes it. Published from the
-# private catalog repository the package was created PRIVATE, anonymous pull returned 403, and
-# none of the 62 public repositories could pull the image their own gate needs. There is no REST
-# endpoint to change a package's visibility afterwards, so the fix is where it is built.
+# GHCR was the obvious home and it does not work here. An organization container package is
+# created PRIVATE, and there is no REST route to change that: PATCH and PUT against every
+# documented and undocumented visibility path return 404, both from a maintainer token and from
+# a workflow GITHUB_TOKEN carrying packages:write. Visibility is settable only by hand in the
+# web UI. An image the 62 public repositories cannot pull anonymously is an image the gate
+# cannot use, and a pipeline that needs a human to click before it works is not a pipeline.
 #
-# The sources moved with it rather than being copied: ci/runner/ is now their one home, next to
-# the reusable workflow that runs them. They carry no identifier and no secret -- the catalog's
-# scrub gate is a hard precondition and reports every tree clean.
+# A release asset on a public repository IS anonymously downloadable, so the gate stays
+# self-sufficient. The reviewed bytes are unchanged: this saves the very image build-runner.sh
+# smoke-tested, records its digest and the archive's SHA-256, and the gate refuses to run
+# anything whose loaded digest is not the one pinned in its caller.
 name: publish-runner
 
 on:
@@ -23,8 +26,7 @@ on:
         default: python3.14-node24
 
 permissions:
-  contents: read
-  packages: write
+  contents: write
 
 jobs:
   publish:
@@ -56,9 +58,6 @@ jobs:
           echo "python_base=python:${py_v}-slim-bookworm@${py_digest}" >> "$GITHUB_OUTPUT"
           echo "node_base=node:${node_v}-bookworm-slim@${node_digest}" >> "$GITHUB_OUTPUT"
 
-      - name: Sign in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
       - name: Build, smoke-test and push
         id: build
         env:
@@ -68,20 +67,53 @@ jobs:
         run: |
           set -euo pipefail
           tag="staging-$(date -u +%Y%m%dT%H%M%SZ)"
-          image="ghcr.io/${{ github.repository_owner }}/ci-runner-${RUNTIME_KEY}:${tag}"
-          IMAGE_URI="$image" bash ci/runner/build-runner.sh
-          digest="$(docker inspect --format='{{index .RepoDigests 0}}' "$image")"
+          image="local/ci-runner-${RUNTIME_KEY}:${tag}"
+          GRC_SKIP_PUSH=1 IMAGE_URI="$image" bash ci/runner/build-runner.sh
+          # The image ID is the digest of the reviewed bytes. RepoDigests is empty for an image
+          # that was never pushed, which is exactly the case now.
+          digest="$(docker image inspect --format='{{.Id}}' "$image")"
+          echo "local_tag=$image" >> "$GITHUB_OUTPUT"
           echo "image_digest=$digest" >> "$GITHUB_OUTPUT"
-          echo "::notice title=Runner published::$digest"
+          echo "::notice title=Runner built::$digest"
 
-      - name: Report the digest to pin
+      - name: Save the image and publish it as a release asset
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUNTIME_KEY: ${{ inputs.runtime_key }}
+          LOCAL_TAG: ${{ steps.build.outputs.local_tag }}
+        run: |
+          set -euo pipefail
+          archive="ci-runner-${RUNTIME_KEY}.tar.gz"
+          docker save "$LOCAL_TAG" | gzip -1 > "$archive"
+          sha="$(sha256sum "$archive" | cut -d" " -f1)"
+          size="$(du -h "$archive" | cut -f1)"
+          tag="runner-${RUNTIME_KEY}"
+          # One rolling release per runtime key, replaced in place. The GATE never pins this
+          # tag: it pins the image digest and verifies the archive's SHA-256, so a moved release
+          # cannot silently change what a build runs -- it fails the check instead.
+          gh release delete "$tag" --yes --cleanup-tag 2>/dev/null || true
+          printf '%s\n' \
+            "image_digest: ${{ steps.build.outputs.image_digest }}" \
+            "archive_sha256: ${sha}" \
+            "Built from ci/runner at ${{ github.sha }}. The gate verifies both before running." \
+            > notes.md
+          gh release create "$tag" "$archive" \
+            --title "CI runner ${RUNTIME_KEY}" --notes-file notes.md
+          echo "archive_sha256=$sha" >> "$GITHUB_OUTPUT"
+          echo "archive_size=$size" >> "$GITHUB_OUTPUT"
+
+      - name: Report what to pin
         run: |
           {
             echo "### Runner published"
             echo
-            echo '```'
-            echo "${{ steps.build.outputs.image_digest }}"
-            echo '```'
+            echo "| field | value |"
+            echo "|---|---|"
+            echo "| \`runner_image\` | \`${{ steps.build.outputs.image_digest }}\` |"
+            echo "| \`runner_archive_sha256\` | \`${{ steps.release.outputs.archive_sha256 }}\` |"
+            echo "| archive size | ${{ steps.release.outputs.archive_size }} |"
             echo
-            echo "Only the digest may be pinned by a caller. A tag can move under a green build."
+            echo "Re-render the callers with these two values. The gate refuses any archive whose"
+            echo "SHA-256 differs and any image whose loaded digest is not the one pinned."
           } >> "$GITHUB_STEP_SUMMARY"
