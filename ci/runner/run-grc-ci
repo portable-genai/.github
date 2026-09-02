@@ -1,0 +1,292 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly allowed_targets='^(gate|check|portability|portability-demo|ui-check|tf-validate|tf-check|demo-selftest|demo-static|laptop-demo-selftest|docs-check|audit|dependency-audit|rename-selftest|demo-browser)$'
+readonly job_id="${GRC_JOB_ID:-}"
+readonly targets="${GRC_MAKE_TARGETS:-}"
+readonly dev_lock="${GRC_DEV_LOCKFILE:-requirements-dev.lock}"
+
+if [[ ! "$job_id" =~ ^[a-z][a-z0-9-]{1,62}$ ]]; then
+  echo "GRC_JOB_ID is required and must be a reviewed job id" >&2
+  exit 2
+fi
+for target in $targets; do
+  if [[ ! "$target" =~ $allowed_targets ]]; then
+    echo "refusing unapproved Make target: $target" >&2
+    exit 2
+  fi
+done
+[[ -f "$dev_lock" ]] || { echo "development lockfile is missing: $dev_lock" >&2; exit 2; }
+
+# Cloud Build hands every step a root-owned /workspace AND a root-owned HOME (/builder/home),
+# while this image deliberately runs as the unprivileged `ci` user. Both arrive readable but NOT
+# writable, and both are written to: the virtualenv, the editable install's .egg-info and the
+# pytest caches land in the working tree, while pip and anything using platformdirs expand
+# ~/.cache under HOME. Redirecting each to a directory this user owns keeps the non-root
+# property; the alternative, running the step as root, would trade a real security boundary for a
+# writable mount. Nothing needs to travel back: evidence leaves through stdout, and every step
+# re-runs this script in a fresh container against the same source.
+if [[ ! -w . ]]; then
+  relocated="$(mktemp -d)"
+  cp -a ./. "$relocated"/
+  cd "$relocated"
+  echo "relocated the read-only checkout to $relocated (running unprivileged)"
+fi
+if [[ ! -w "${HOME:-/nonexistent}" ]]; then
+  HOME="$(mktemp -d)"
+  export HOME
+  echo "redirected an unwritable HOME to $HOME (running unprivileged)"
+fi
+
+rm -rf .venv .venv-runtime
+python3 -m venv .venv
+.venv/bin/python -m pip install --disable-pip-version-check -r "$dev_lock"
+if [[ "${GRC_EDITABLE_INSTALL:-true}" == "true" ]]; then
+  .venv/bin/python -m pip install --disable-pip-version-check --no-deps -e .
+elif [[ "${GRC_EDITABLE_INSTALL:-true}" != "false" ]]; then
+  echo "GRC_EDITABLE_INSTALL must be true or false" >&2
+  exit 2
+fi
+export PATH="$PWD/.venv/bin:$PATH"
+export CHROME_PATH="${CHROME_PATH:-/usr/bin/chromium}"
+# "A browser is expected here" turns an absent [demo] extra or a failed launch into a FAILURE
+# instead of a skip, because a suite that skips reports exactly the green a suite that ran
+# reports. It is a property of the JOB and not of the runner, which is the correction: the
+# runner ships a browser, so stating it here once looked right, and it would have turned the
+# offline gate red in all eight trees that carry the browser suite. Their `gate` runs `test`,
+# which is an unrestricted `pytest -m "not integration"` and therefore COLLECTS tests/browser
+# -- and the gate job installs the dev lock alone, which does not carry playwright. Set
+# runner-wide, the flag turns that collection into a ModuleNotFoundError on every pull
+# request, in the one check the fleet actually has. Observed by running it, not reasoned
+# about: with the extra hidden and the flag set the suite errors at collection; with the flag
+# unset the same command skips.
+if [[ "${GRC_DEMO_BROWSER_REQUIRED:-false}" == "true" ]]; then
+  export DEMO_BROWSER_REQUIRED=1
+elif [[ "${GRC_DEMO_BROWSER_REQUIRED:-false}" != "false" ]]; then
+  echo "GRC_DEMO_BROWSER_REQUIRED must be true or false" >&2
+  exit 2
+fi
+if [[ -n "${GRC_PYTHONPATH:-}" ]]; then
+  export PYTHONPATH="$GRC_PYTHONPATH"
+fi
+
+# Supplemental locks and targets are explicit fields in one reviewed job contract. The primary
+# target runs first against the dev lock alone, preserving dev-only negative proofs: a repo
+# whose gate asserts a package is ABSENT must see the environment before an extra lock widens
+# it.
+#
+# That order is wrong for a job whose ONLY target needs the supplemental lock, and the browser
+# job is the first in the fleet to be shaped that way. Running `demo-browser` before
+# requirements-demo.lock is installed means the [demo] extra is not importable yet, and with
+# DEMO_BROWSER_REQUIRED set that is a FAILURE rather than the skip it used to be — a red job on
+# every pull request, for a dependency the contract itself declared. GRC_EXTRA_LOCKFILES_FIRST
+# moves the install ahead of every target, for exactly the jobs that ask. It defaults to false,
+# so each existing contract keeps the behaviour it was reviewed under.
+readonly extras_first="${GRC_EXTRA_LOCKFILES_FIRST:-false}"
+if [[ "$extras_first" != "true" && "$extras_first" != "false" ]]; then
+  echo "GRC_EXTRA_LOCKFILES_FIRST must be true or false" >&2
+  exit 2
+fi
+
+# The same ordering question as GRC_EXTRA_LOCKFILES_FIRST, asked about node_modules.
+#
+# The npm phase installs and audits AFTER every make target, which is right while its only job
+# is a supply-chain audit. It is wrong the moment a target needs the modules: `ui-check` builds
+# the console and proves the served markup hydrates, and with no node_modules yet it fails on
+# the first `npm --prefix ui run lint` -- a red job on every pull request, for a dependency the
+# contract itself declared. GRC_NPM_DIRECTORY_FIRST moves the install ahead of every target,
+# for exactly the jobs that ask, and defaults to false so every existing contract keeps the
+# behaviour it was reviewed under.
+readonly npm_first="${GRC_NPM_DIRECTORY_FIRST:-false}"
+if [[ "$npm_first" != "true" && "$npm_first" != "false" ]]; then
+  echo "GRC_NPM_DIRECTORY_FIRST must be true or false" >&2
+  exit 2
+fi
+
+install_npm_directory() {
+  [[ -n "${GRC_NPM_DIRECTORY:-}" ]] || return 0
+  [[ -f "$GRC_NPM_DIRECTORY/package-lock.json" ]] || {
+    echo "npm lockfile is missing under $GRC_NPM_DIRECTORY" >&2
+    exit 2
+  }
+  npm ci --prefix "$GRC_NPM_DIRECTORY"
+  npm audit --audit-level=high --prefix "$GRC_NPM_DIRECTORY"
+}
+
+install_extra_lockfiles() {
+  for lockfile in ${GRC_EXTRA_LOCKFILES:-}; do
+    [[ -f "$lockfile" ]] || { echo "extra lockfile is missing: $lockfile" >&2; exit 2; }
+    .venv/bin/python -m pip install --disable-pip-version-check -r "$lockfile"
+  done
+}
+
+if [[ "$npm_first" == "true" ]]; then
+  install_npm_directory
+fi
+
+if [[ "$extras_first" == "true" ]]; then
+  install_extra_lockfiles
+  for target in $targets; do
+    make "$target"
+  done
+else
+  if [[ -n "$targets" ]]; then
+    primary_target="${targets%% *}"
+    make "$primary_target"
+  fi
+  install_extra_lockfiles
+  if [[ -n "$targets" ]]; then
+    remaining_targets="${targets#"${targets%% *}"}"
+    for target in $remaining_targets; do
+      make "$target"
+    done
+  fi
+fi
+
+for lockfile in ${GRC_AUDIT_LOCKFILES:-}; do
+  [[ -f "$lockfile" ]] || { echo "audit lockfile is missing: $lockfile" >&2; exit 2; }
+  pip-audit --strict --requirement "$lockfile" --disable-pip --no-deps
+done
+
+if [[ "$npm_first" != "true" ]]; then
+  install_npm_directory
+fi
+
+if [[ -n "${GRC_TERRAFORM_DIRECTORY:-}" ]]; then
+  [[ -d "$GRC_TERRAFORM_DIRECTORY" ]] || {
+    echo "Terraform directory is missing: $GRC_TERRAFORM_DIRECTORY" >&2
+    exit 2
+  }
+  terraform -chdir="$GRC_TERRAFORM_DIRECTORY" fmt -check -recursive
+  terraform -chdir="$GRC_TERRAFORM_DIRECTORY" init -backend=false -input=false
+  terraform -chdir="$GRC_TERRAFORM_DIRECTORY" validate
+  if [[ "${GRC_TERRAFORM_TEST:-false}" == "true" ]]; then
+    terraform -chdir="$GRC_TERRAFORM_DIRECTORY" test
+  elif [[ "${GRC_TERRAFORM_TEST:-false}" != "false" ]]; then
+    echo "GRC_TERRAFORM_TEST must be true or false" >&2
+    exit 2
+  fi
+fi
+
+if [[ -n "${GRC_IAP_MATRIX_PATH:-}" && -z "${GRC_RUNTIME_LOCKFILE:-}" ]]; then
+  echo "an IAP matrix requires a runtime lockfile" >&2
+  exit 2
+fi
+if [[ -n "${GRC_RUNTIME_LOCKFILE:-}" ]]; then
+  [[ -f "$GRC_RUNTIME_LOCKFILE" ]] || { echo "runtime lockfile is missing" >&2; exit 2; }
+  python3 -m venv .venv-runtime
+  .venv-runtime/bin/python -m pip install --disable-pip-version-check -r "$GRC_RUNTIME_LOCKFILE"
+  .venv-runtime/bin/python -m pip install --disable-pip-version-check --no-deps -e .
+  # Stub-only distributions are a TYPE-CHECKING concern, never a runtime one: they ship no
+  # importable code and must not reach the service image, which is why they live in the dev
+  # lock. mypy resolves stubs from the environment it is POINTED AT, though, so under
+  # --python-executable the runtime venv has to carry them or the checker reports "library
+  # stubs not installed" for a package the tree has been typing correctly for years. That is
+  # a finding about how this job is wired rather than about the source, and it was the single
+  # largest class the first fleet-wide run produced: forty-five of them, all for yaml.
+  # Installing ONLY the types-* pins leaves the analysed package set otherwise exactly what
+  # the image ships.
+  stub_pins="$(mktemp)"
+  grep -iE '^types-[A-Za-z0-9._-]+==' "$dev_lock" > "$stub_pins" || true
+  if [[ -s "$stub_pins" ]]; then
+    .venv-runtime/bin/python -m pip install --disable-pip-version-check -r "$stub_pins"
+  fi
+  rm -f "$stub_pins"
+  runtime_site="$(.venv-runtime/bin/python -c 'import site; print(site.getsitepackages()[0])')"
+  # -- the type check that can SEE the cloud adapters ---------------------------------- #
+  # The gate's own `make lint` installs the dev lock alone, which carries no Google Cloud
+  # SDK, so mypy resolves google.cloud.* and google.oauth2.* to Any and reports nothing
+  # about the adapters that use them. The check that runs on every merge was therefore
+  # blind to precisely the code where a type error is most likely to be a real defect, and
+  # four repositories sat RED at their committed baseline with green pull requests.
+  #
+  # This runs the DEV-PINNED mypy against the RUNTIME environment: --python-executable
+  # tells mypy to analyse against that interpreter's installed packages, so the version of
+  # mypy is the reviewed one and the packages it sees are the ones the service ships with.
+  # Installing mypy into .venv-runtime instead would let the dev lock's pins fight the
+  # runtime lock's.
+  #
+  # BLOCKING since 2026-08-31, on the condition the earlier decision named: the fleet is
+  # green under it. It ran non-blocking from 2026-08-30 so the latent reds could surface
+  # without turning every open pull request red at once, and that worked -- it found thirty
+  # trees importing a Google client library declared nowhere, a client method that does not
+  # exist, and eight trees on the retired generative-AI SDK.
+  #
+  # What was left after those were fixed was upstream typing rather than source, and it now
+  # has an answer that is not a suppression, declared in each tree's own pyproject rather
+  # than here: `follow_untyped_imports` ANALYSES a dependency shipping no `py.typed` instead
+  # of resolving it to nothing (measured as more checking, not less -- a bogus method on a
+  # Cloud Storage client was reported by nothing before it), and `untyped_calls_exclude`
+  # drops only the "this callee has no annotations" complaint for the `google` namespace,
+  # which no work in these repositories can satisfy. Both live with the code they describe,
+  # so the offline gate and this job read the SAME configuration and can no longer disagree
+  # about a line -- which is what they used to do in `human-review-console`, where one check
+  # required a `type: ignore` the other reported as unused.
+  #
+  # A blocking job can only go red from a change in the repository, because the runtime lock
+  # pins exact versions: a new upstream release cannot arrive without a lockfile edit.
+  if [[ "${GRC_LINT_GCP:-false}" == "true" ]]; then
+    # A cold cache is not an optimisation here, it is a correctness requirement: the same
+    # tree has reported fourteen errors against a warm .mypy_cache and five cold, and a
+    # warm run prints fewer error lines than its own summary counts. A finding count that
+    # depends on cache state is not a property of the source. The container is fresh, so
+    # this is belt and braces against a checkout that ever carries one.
+    rm -rf .mypy_cache
+    echo "--- lint-gcp: mypy against the RUNTIME lock (blocking) ---"
+    lint_gcp_status=0
+    # An ARRAY, not an unquoted expansion: the paths are space-separated by contract, and
+    # splitting them deliberately is not the same thing as letting the shell do it by accident.
+    read -r -a lint_gcp_paths <<< "${GRC_LINT_GCP_PATHS:-src}"
+    .venv/bin/python -m mypy \
+      --python-executable .venv-runtime/bin/python \
+      "${lint_gcp_paths[@]}" || lint_gcp_status=$?
+    if [[ "$lint_gcp_status" -eq 0 ]]; then
+      echo "GRC_LINT_GCP=clean"
+    else
+      # One trap recorded so it is not re-diagnosed: a module importing a google.cloud
+      # sub-package that is NOT installed poisons google.cloud for the whole run. mypy
+      # synthesises the parent, and every correctly installed sibling import then reports
+      # `has no attribute`. Excluding one such module took a repository from eleven errors
+      # to two. Read the FIRST error before counting the rest.
+      echo "GRC_LINT_GCP=findings (exit ${lint_gcp_status})"
+    fi
+    # The end marker is printed before exiting, so a failing build's log still closes the
+    # section it failed in rather than stopping mid-block.
+    echo "--- end lint-gcp ---"
+    [[ "$lint_gcp_status" -eq 0 ]] || exit "$lint_gcp_status"
+  fi
+  if [[ -n "${GRC_IAP_MATRIX_PATH:-}" ]]; then
+    [[ -f "$GRC_IAP_MATRIX_PATH" ]] || { echo "IAP matrix is missing" >&2; exit 2; }
+    prefix="$(python3 -c '
+import pathlib, re, sys
+# The prefix may itself contain underscores (TPRM_DDQ_PROFILE), so the class has to admit
+# one. Without it this matched nothing in third-party-risk-ddq and the job exited 2 on a
+# repository whose matrix is otherwise ready to run.
+match = re.search(r"^([A-Z0-9_]+)_PROFILE=", pathlib.Path(".env.example").read_text(), re.M)
+if not match:
+    sys.exit("no <PREFIX>_PROFILE= line in .env.example")
+print(match.group(1))
+')"
+    matrix_log="$(mktemp)"
+    trap 'rm -f "$matrix_log"' EXIT
+    env "${prefix}_REQUIRE_IAP_MATRIX=1" PYTHONPATH="$runtime_site:src" \
+      .venv/bin/python -m pytest --no-header -rs "$GRC_IAP_MATRIX_PATH" | tee "$matrix_log"
+    if grep -qE 'skipped|no tests ran' "$matrix_log"; then
+      echo "the required IAP runtime-lock matrix skipped" >&2
+      exit 1
+    fi
+  fi
+fi
+
+python3 - <<'PY'
+import json
+import os
+import subprocess
+
+print("GRC_CI_EVIDENCE=" + json.dumps({
+    "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+    "job": os.environ["GRC_JOB_ID"],
+    "repository": os.environ.get("REPO_NAME", "unknown"),
+    "targets": os.environ.get("GRC_MAKE_TARGETS", "").split(),
+}, sort_keys=True))
+PY
