@@ -9,7 +9,7 @@ status: stable
 # Common-base practices catalogue (checkable in any catalog repo)
 
 This is the generalised list of policies and engineering practices the reference build
-`cdd-sow-research` (catalog id Doc1) follows, written so any repo in the catalog can be
+`cdd-sow-research` follows, written so any repo in the catalog can be
 audited against it. Each practice
 states: what it is, why it matters, the mechanism in the reference repo (evidence), and
 **Check**: a concrete command or inspection another repo can run. "PASS" means the check
@@ -94,8 +94,9 @@ Here: `domain/kernel.py` vs `domain/models.py` (ARCHITECTURE §1.1).
 the vertical models import from it, not vice versa.
 
 **A8. Consume the platform horizontals; never re-implement them.** [all]
-Guardrail/DLP (Hrz1), governed RAG (Hrz2), registry (Hrz3), eval gate (Hrz4),
-observability/WORM audit (Hrz5) are consumed through ports with thin HTTP delegate
+Guardrail/DLP (`agent-guardrail-gateway`), governed RAG (`enterprise-knowledge-base`),
+registry (`agent-registry`), eval gate (`model-quality-gate`), observability/WORM audit
+(`agent-observability`) are consumed through ports with thin HTTP delegate
 adapters. Offline stand-ins are allowed behind the same port; standalone cloud
 integrations must be explicitly scoped to standalone deployments.
 Here: `adapters/platform/remote_*.py` (54-117 lines each, marshalling only);
@@ -235,7 +236,7 @@ gate from `agent_eval_kit`, and each repo RE-EXPORTS them from `ports/observabil
 than declaring them. The repos that hand-copied these first had already drifted: one lost the
 evaluation port, two lost its `gate` method, one changed a return type. Where spans go is
 deployment configuration, never a profile: `OTEL_EXPORTER_OTLP_ENDPOINT` set means OTLP to the
-Hrz5 collector, unset means direct Cloud Trace, EMPTIED refuses. Span attributes are structural
+`agent-observability` collector, unset means direct Cloud Trace, EMPTIED refuses. Span attributes are structural
 only; a span is not a redacted sink. Tracing is the one seam that is ABSENT rather than fatal
 on-prem and the one managed adapter that must NOT refuse offline, because an exporter fault must
 never become a request fault; declare that exemption and assert it in both directions.
@@ -327,12 +328,12 @@ Here: `infra/terraform/*`, ci.yaml terraform job, ARCHITECTURE PT-13.
 ## E. Quality gates and evals
 
 **E1. A deterministic offline eval smoke check guards every merge; the platform eval
-service (Hrz4) is the promotion authority.** [agentic]
+service `model-quality-gate` is the promotion authority.** [agentic]
 Golden dataset + metric scorers run in CI offline; the authoritative promotion verdict
 comes from the shared eval platform through the evaluation port at release time. The
 in-repo harness is labelled a smoke check, not the gate of record.
 Here: `eval/run_eval.py` + `eval/datasets/` + `eval/rubrics/` (smoke);
-`EvaluationGatePort` -> Hrz4 (promotion).
+`EvaluationGatePort` -> `model-quality-gate` (promotion).
 **Check:** CI runs the offline eval on every PR; the repo documents which authority owns
 promotion; metric thresholds are not duplicated as unlabelled constants.
 
@@ -473,8 +474,9 @@ reused, so it is never confused with a check that once meant something else.
 them.** [all]
 Security / portability / features / adoption / compliance FAQs, each stating where this
 repo's responsibility ends and which catalog system owns the adjacent concern.
-Here: `docs/faq/` (five files + index), each cross-referencing Hrz1-5, Rsk1/6, G1/2/6/7.
-**Check:** the FAQ names the owning catalog id for every adjacent capability; no FAQ
+Here: `docs/faq/` (five files + index), each cross-referencing the platform repositories it
+depends on by name.
+**Check:** the FAQ names the owning repository for every adjacent capability; no FAQ
 re-documents a horizontal's feature set.
 
 **G6. Contribution docs cover the FULL extension touch list, enforced by a test.** [all]
