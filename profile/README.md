@@ -120,12 +120,12 @@ the adoption sequence, and where Gemini and Google Cloud give it particular stre
 
 | Repository and what it does | BFSI tier, and why | Primary Gemini Enterprise services |
 |---|---|---|
-| [`cdd-sow-research`](https://github.com/portable-genai/cdd-sow-research)<br>Grounded research over KYC docs + corporate registries + adverse media -> SoW narrative, risk rating, full citations and audit trail | `P1`<br>The flagship of the launch set: grounded multi-source source-of-wealth research with full citations turns days of financial-crime analyst work into minutes, a cost centre every bank, wealth manager and insurer carries. It plays to Gemini's deepest strengths, Deep Research and Google Search grounding over adverse media and corporate registries, fused with retrieval over the institution's own KYC corpus. Incumbent KYC vendors cover screening and workflow; cited source-of-wealth research with a replayable audit trail is the part the supervisor reads. | • GE Deep Research: adverse-media and registry research<br>• GE Agent Search: KYC-corpus retrieval for the cited dossier |
+| [`cdd-sow-research`](https://github.com/portable-genai/cdd-sow-research)<br>Grounded research over KYC docs + corporate registries + adverse media -> SoW narrative, risk rating, full citations and audit trail | `P1`<br>The flagship of the launch set: grounded multi-source source-of-wealth research with full citations turns days of financial-crime analyst work into minutes, a cost centre every bank, wealth manager and insurer carries. It plays to Gemini's deepest strengths, Deep Research and Google Search grounding over adverse media and corporate registries, fused with retrieval over the institution's own KYC corpus. Incumbent KYC vendors cover screening and workflow; cited source-of-wealth research with a replayable audit trail is the part the supervisor reads. | • AP Grounding with Google Search: adverse-media and registry research<br>• GE Agent Search: KYC-corpus retrieval for the cited dossier |
 | [`aml-alert-triage`](https://github.com/portable-genai/aml-alert-triage)<br>Takes a deterministically-scored AML transaction-monitoring alert and produces a close / escalate-to-SAR / request-info recommendation with a | `P2`<br>Alert triage is the biggest analyst cost line in AML, and a grounded recommendation with rationale on every alert (close, escalate to SAR, or request information, each backed by typology retrieval) is where a governed Gemini workflow relieves the most hours. Second wave rather than launch set because a credible first proof needs the institution's transaction-monitoring feeds and model-risk sign-off in place; adopted alongside cdd-sow-research it reuses the same financial-crime evidence discipline and platform services. | • AP RAG Engine: typology retrieval grounding SAR narratives<br>• AP BigQuery/Pub-Sub event-driven agents: alert-triggered triage runs |
 | [`account-takeover-investigator`](https://github.com/portable-genai/account-takeover-investigator)<br>Correlates device, session | `P3`<br>Correlating device, session and behaviour signals into a cited, replayable investigation timeline produces the evidence form a fraud review and a regulator can both accept. BFSI core tier because the correlation needs the institution's login and device telemetry flowing through BigQuery before it shows its value; adopted with soc-fraud-fusion it completes the fraud-fusion cluster. | • AP BigQuery/Pub-Sub event-driven agents: login, session and device signal triggers<br>• AP Agent Runtime: the investigation agent and its A2A surface |
 | [`app-fraud-interdiction`](https://github.com/portable-genai/app-fraud-interdiction)<br>Scores an in-flight payment/checkout for scam and authorised-push-payment fraud (deterministic rules | `P3`<br>Authorised-push-payment reimbursement rules are shifting scam liability onto banks, so in-flight interdiction that pairs deterministic rules with model-read context carries a hard financial case, including on the inbound scam-call channel. BFSI core tier because it sits in the payment path, the deepest integration in this catalog, which institutions rightly grant only after the platform has earned production trust; the liability clock pulls it up as that trust is established. | • AP BigQuery/Pub-Sub event-driven agents: in-flight payment triggers<br>• CX channels & speech: the inbound scam-call channel |
 | [`claims-integrity-investigator`](https://github.com/portable-genai/claims-integrity-investigator)<br>Reviews an insurance claim file (FNOL, adjuster notes, photos, invoices, medical/repair reports | `P3`<br>The strongest insurance entry: Gemini's multimodal reading of the full claim file, adjuster notes, photos, invoices and medical or repair reports, grounds a cited integrity review no text-only tool can produce. It ranks with the BFSI core only because this catalog's launch set leads banking-side; in an insurance-led adoption it steps forward as the flagship alongside insurance-underwriting-intake. | • AP Model Garden: multimodal review of claim documents and photos<br>• AP RAG Engine: policy-wording retrieval |
-| [`sanctions-screening`](https://github.com/portable-genai/sanctions-screening)<br>Resolves sanctions/PEP/watchlist and ISO 20022 / SWIFT payment-message screening hits | `P3`<br>Sanctions and PEP hit disposition is high-volume analyst toil, and cited adverse-media research on each hit is exactly what Gemini Deep Research over public sources does well. Positioned as disposition assistance on top of the institution's existing screening stack rather than as stack replacement, so it follows the financial-crime adoption cdd-sow-research starts. | • GE Deep Research: adverse-media research on screening hits<br>• AP Agent Runtime: the disposition-drafting agent |
+| [`sanctions-screening`](https://github.com/portable-genai/sanctions-screening)<br>Resolves sanctions/PEP/watchlist and ISO 20022 / SWIFT payment-message screening hits | `P3`<br>Sanctions and PEP hit disposition is high-volume analyst toil, and cited adverse-media research on each hit is exactly what Gemini Deep Research over public sources does well. Positioned as disposition assistance on top of the institution's existing screening stack rather than as stack replacement, so it follows the financial-crime adoption cdd-sow-research starts. | • adverse-media research on screening hits: unimplemented (GroundedAdverseMediaAdapter raises NotImplementedError after importing discoveryengine)<br>• AP Agent Runtime: the disposition-drafting agent |
 | [`soc-fraud-fusion`](https://github.com/portable-genai/soc-fraud-fusion)<br>Ingests a deterministically-correlated security/fraud alert and produces a triaged incident summary | `P3`<br>Fusing security and fraud signals into one triaged, narrated incident view closes the gap attackers exploit between the SOC and the fraud team. BFSI core tier by integration depth rather than value: the fusion claim means something only once both estates feed it, which most institutions reach in a second phase of adoption. | • AP RAG Engine: runbook and threat-intel retrieval<br>• AP Agent Gateway + Model Armor: injection screening before narration |
 
 #### Customer service and engagement
@@ -146,7 +146,7 @@ the adoption sequence, and where Gemini and Google Cloud give it particular stre
 | [`marketing-compliance-gate`](https://github.com/portable-genai/marketing-compliance-gate)<br>Reviews campaigns, creatives and offers against per-market, per-vertical advertising / consumer-protection / fair-trading rules | `P1`<br>Financial promotions are a regulated activity, so one maker-checker gate over campaigns, creatives and offers serves the CMO and the CCO at once and extends governed GenAI to the revenue side without leaving compliance ground. It ranks in the launch set because every outbound-content system in this catalog must depend on it (rule R7): adopting the gate first is what lets the whole marketing suite go live safely afterwards. | • AP RAG Engine: per-market advertising rule-KB retrieval<br>• AP Model Garden: finding narration |
 | [`campaign-planner`](https://github.com/portable-genai/campaign-planner)<br>Turns an objective and budget into a campaign plan for any vertical (banking or online retail): audience segmentation and propensity | `P2`<br>The planning engine of the marketing wave: Gemini drafts the briefs, audience narratives and channel calendars while a deterministic engine allocates budget under auditable eligibility and consent constraints, so the creative thinking is generated and the spend decision stays replayable. Second wave because it delivers most once marketing-compliance-gate is in place and market-intelligence feeds it: planning, screening and evidence then form one governed pipeline. | • AP Model Garden: brief and calendar drafting<br>• AP ADK: campaign-planning agents |
 | [`creative-studio`](https://github.com/portable-genai/creative-studio)<br>Generates on-brand ad copy and creative variants (text + image) for a bank or retailer | `P2`<br>The most visible of the marketing suite: Gemini writes the on-brand copy and Imagen generates the image variants, grounded in the institution's own brand guidelines, so campaign creative that once took an agency cycle takes an afternoon. Second wave because its brand-safety claim stands through the marketing-compliance-gate every variant must pass (rule R7): generation and gate together are what set it apart from ungoverned creative tools. | • AP Model Garden: Gemini copy and Imagen creative variants<br>• AP RAG Engine: brand-guideline grounding |
-| [`market-intelligence`](https://github.com/portable-genai/market-intelligence)<br>Deep, cited market research and competitor analysis for a bank OR online retailer: market and segment sizing | `P2`<br>Cited market and competitor research that pairs Gemini Deep Research over the open web with grounding in the institution's own research corpus, so market sizing and competitor claims arrive with checkable sources on both sides. Second wave with the marketing suite: governed-corpus grounding and citation discipline are what it adds over ungoverned research tools, and they show best once the marketing pipeline it feeds is live. | • GE Deep Research: cited market and competitor research<br>• GE Agent Search: internal research-corpus grounding |
+| [`market-intelligence`](https://github.com/portable-genai/market-intelligence)<br>Deep, cited market research and competitor analysis for a bank OR online retailer: market and segment sizing | `P2`<br>Cited market and competitor research that pairs Gemini Deep Research over the open web with grounding in the institution's own research corpus, so market sizing and competitor claims arrive with checkable sources on both sides. Second wave with the marketing suite: governed-corpus grounding and citation discipline are what it adds over ungoverned research tools, and they show best once the marketing pipeline it feeds is live. | • AP Grounding with Google Search: cited market and competitor research<br>• GE Agent Search: internal research-corpus grounding |
 | [`next-best-action`](https://github.com/portable-genai/next-best-action)<br>Per-customer / per-shopper next-best-offer and cross-sell / up-sell of products or merchandise: propensity plus deterministic eligibility ranking | `P2`<br>Next-best-action is the most crowded claim in banking martech; this one earns its place through what the crowded field does not carry: deterministic eligibility, suitability and consent gates in front of every offer, so cross-sell revenue arrives already evidenced for conduct review. Propensity runs on platform models, the ranking stays replayable, and every offer reaches the customer through the marketing-compliance-gate. | • AP Model Garden: propensity and recommendation models<br>• CX commerce agents: offer surfacing in customer journeys |
 | [`performance-marketing-optimisation`](https://github.com/portable-genai/performance-marketing-optimisation)<br>Measures and optimises paid and owned channels for any vertical: multi-touch attribution, ROAS / CAC, deterministic bid and budget optimisation | `P2`<br>Multi-touch attribution and ROAS optimisation with deterministic statistics give the CMO and CFO one auditable account of what marketing spend returns, with conversational exploration of the numbers over BigQuery. Second wave by data dependency: it needs months of channel history flowing before optimisation shows value, so it is adopted with the gate and the planner and proves the suite's return over the following quarters. | • GE Conversational Analytics: conversational exploration of performance metrics<br>• AP BigQuery/Pub-Sub event-driven agents: anomaly-alert triggers |
 
@@ -166,7 +166,7 @@ the adoption sequence, and where Gemini and Google Cloud give it particular stre
 | [`compliance-advisory`](https://github.com/portable-genai/compliance-advisory)<br>Q&A + use-case-specific control checklists, automated test cases and the exact questions a regulator/CRO will ask | `P1`<br>The natural first adoption in the launch set: it equips the CCO and CRO, who must approve every other agent in this catalog, with cited answers in their own regulatory language (MAS, HKMA, APRA, FSA), plus the control checklists and GCP control mappings that make approval an evidence review rather than a leap of faith. The other launch applications already depend on it, so adopting it first gives every later use case its compliance groundwork. | • GE Agent Search: cited regulatory Q&A for analysts<br>• AP RAG Engine: requirement retrieval for control mappings |
 | [`architecture-validator`](https://github.com/portable-genai/architecture-validator)<br>Validates a project's requirements / design against the General Principles (policy-as-code) + the reg KB | `P2`<br>An internal engineering gate rather than an end-user application: it validates each new project's requirements and design against the numbered principles and the regulatory KB at intake (rule R6), which is how an institution scales from one governed agent to many without re-litigating architecture each time. Second wave because it starts earning from the first follow-on project onwards, and every adopted vertical immediately needs it. | • AP ADK: the root validation agent<br>• AP RAG Engine: reg-KB retrieval |
 | [`exam-rfi-orchestrator`](https://github.com/portable-genai/exam-rfi-orchestrator)<br>Turns an incoming regulator exam request list or supervisory inquiry into a managed, citation-backed response; handles RFIs and s.166-style reviews | `P2`<br>Regulator exam requests and RFIs are universal pain with no incumbent tooling: this turns each request list into a managed, deadline-tracked, citation-backed response over the institution's own evidence. Second wave as the natural next step after compliance-advisory for the same compliance team, and a strong platform fit besides: ACL-aware cited retrieval at corpus scale is exactly what Agent Search provides, so adoption is more configuration than construction. | • GE Agent Search: ACL-aware exam-evidence retrieval<br>• AP Agent Runtime: deadline-tracked response workflows |
-| [`third-party-risk-ddq`](https://github.com/portable-genai/third-party-risk-ddq)<br>Ingests a vendor's DDQs (SIG/CAIQ-style), SOC 2 / ISO 27001 reports, financials and adverse media | `P2`<br>Vendor DDQ and SOC 2 review is documents-in, cited-memo-out, the lowest-integration relief in the governance family, with Gemini Deep Research adding the adverse-media sweep on each vendor. Second wave because it complements the entrenched, procurement-owned TPRM platforms rather than replacing them, so it lands best as an extension of the compliance-advisory adoption already underway. | • GE Deep Research: vendor adverse-media research<br>• AP RAG Engine: DDQ, SOC 2 and ISO corpus retrieval |
+| [`third-party-risk-ddq`](https://github.com/portable-genai/third-party-risk-ddq)<br>Ingests a vendor's DDQs (SIG/CAIQ-style), SOC 2 / ISO 27001 reports, financials and adverse media | `P2`<br>Vendor DDQ and SOC 2 review is documents-in, cited-memo-out, the lowest-integration relief in the governance family, with Gemini Deep Research adding the adverse-media sweep on each vendor. Second wave because it complements the entrenched, procurement-owned TPRM platforms rather than replacing them, so it lands best as an extension of the compliance-advisory adoption already underway. | • vendor adverse-media research: unimplemented (CloudAdverseMediaAdapter raises RuntimeError, grounding sub-agent unbound)<br>• AP RAG Engine: DDQ, SOC 2 and ISO corpus retrieval |
 | [`ai-act-conformity-pack`](https://github.com/portable-genai/ai-act-conformity-pack)<br>Maps each deployed AI/agent system in the agent-registry to obligations under the EU AI Act, MAS FEAT/Veritas, HKMA, APRA CPS 234/230 AI guidance | `P3`<br>The EU AI Act and FEAT conformity clock is real, and mapping each deployed agent to its obligations with drafted conformity narratives is work every AI-adopting institution now owes. BFSI core tier by dependency rather than weight: it reads the agent-registry, so it becomes valuable exactly when agents reach production, and it moves up the moment a supervisor asks for the evidence. | • AP RAG Engine: AI-Act and FEAT rule-KB grounding<br>• AP Model Garden: conformity-narrative drafting |
 | [`conflicts-gifts-pad-register`](https://github.com/portable-genai/conflicts-gifts-pad-register)<br>Ingests gifts & entertainment declarations, PAD/brokerage feeds, outside-business-interest and political-donation disclosures | `P3`<br>Conflicts, gifts and personal-account-dealing registers are universal obligations where the value is screening quality: free-text declarations read properly and cross-checked against brokerage feeds and disclosure history. BFSI core tier alongside trade-comms-surveillance, whose surveillance signals it consumes; together they close the personal-conduct loop. | • AP ADK: screening and declaration agents<br>• AP Model Garden: free-text declaration reading |
 | [`consumer-duty-monitoring`](https://github.com/portable-genai/consumer-duty-monitoring)<br>Ingests product-governance packs, target-market definitions, fees/value-for-money data, complaints themes and sales/advice samples | `P3`<br>Consumer-duty outcomes monitoring is board-level in the UK and spreading through APAC conduct regimes, and the platform's conversation-insight signals give it evidence that sampling never had. BFSI core tier because it consumes the complaints, QA and disputes feeds (complaints-review, conversation-qa-scorecard, disputes-chargebacks-manager), so it becomes credible exactly when those systems are producing data. | • CX Insights: complaint and conversation outcome signals<br>• AP Model Garden: fair-value assessment drafting |
@@ -244,75 +244,75 @@ whatever its business category.
 ```mermaid
 flowchart LR
   subgraph PLAT["Platform: the horizontal tier"]
-    Hrz1["agent-guardrail-gateway"]
-    Hrz5["agent-observability"]
-    Hrz3["agent-registry"]
-    Rsk1["compliance-advisory"]
-    Hrz2["enterprise-knowledge-base"]
-    Hrz7["human-review-console"]
-    Hrz9["journey-portal"]
-    Hrz4["model-quality-gate"]
-    Rsk6["onprem-dlp"]
+    agent_guardrail_gateway["agent-guardrail-gateway"]
+    agent_observability["agent-observability"]
+    agent_registry["agent-registry"]
+    compliance_advisory["compliance-advisory"]
+    enterprise_knowledge_base["enterprise-knowledge-base"]
+    human_review_console["human-review-console"]
+    journey_portal["journey-portal"]
+    model_quality_gate["model-quality-gate"]
+    onprem_dlp["onprem-dlp"]
   end
   subgraph FCC["Financial crime, fraud and cyber"]
-    G4["account-takeover-investigator"]
-    G1["aml-alert-triage"]
-    G3["app-fraud-interdiction"]
-    Doc1["cdd-sow-research"]
-    Ins1["claims-integrity-investigator"]
-    G2["sanctions-screening"]
-    G5["soc-fraud-fusion"]
+    account_takeover_investigator["account-takeover-investigator"]
+    aml_alert_triage["aml-alert-triage"]
+    app_fraud_interdiction["app-fraud-interdiction"]
+    cdd_sow_research["cdd-sow-research"]
+    claims_integrity_investigator["claims-integrity-investigator"]
+    sanctions_screening["sanctions-screening"]
+    soc_fraud_fusion["soc-fraud-fusion"]
   end
   subgraph SVC["Customer service and engagement"]
-    Doc3["cio-advisory"]
-    Doc6["complaints-review"]
-    E1["contact-centre-conversations"]
-    E3["conversation-qa-scorecard"]
-    E5["proactive-service-outreach"]
+    cio_advisory["cio-advisory"]
+    complaints_review["complaints-review"]
+    contact_centre_conversations["contact-centre-conversations"]
+    conversation_qa_scorecard["conversation-qa-scorecard"]
+    proactive_service_outreach["proactive-service-outreach"]
   end
   subgraph MKT["Marketing and customer growth"]
-    Mkt2["campaign-planner"]
-    Mkt3["creative-studio"]
-    Mkt1["market-intelligence"]
-    Mkt6["marketing-compliance-gate"]
-    Mkt5["next-best-action"]
-    Mkt4["performance-marketing-optimisation"]
+    campaign_planner["campaign-planner"]
+    creative_studio["creative-studio"]
+    market_intelligence["market-intelligence"]
+    marketing_compliance_gate["marketing-compliance-gate"]
+    next_best_action["next-best-action"]
+    performance_marketing_optimisation["performance-marketing-optimisation"]
   end
   subgraph LND["Credit and lending"]
-    Doc2["credit-memo-drafting"]
-    Doc7["credit-portfolio-early-warning"]
-    Doc5["loan-document-intelligence"]
-    Doc4["trade-finance-checker"]
+    credit_memo_drafting["credit-memo-drafting"]
+    credit_portfolio_early_warning["credit-portfolio-early-warning"]
+    loan_document_intelligence["loan-document-intelligence"]
+    trade_finance_checker["trade-finance-checker"]
   end
   subgraph RGC["Risk, governance and compliance"]
-    Rgc14["ai-act-conformity-pack"]
-    Rsk3["architecture-validator"]
-    Rgc11["conflicts-gifts-pad-register"]
-    Rgc15["consumer-duty-monitoring"]
-    Aud2["continuous-controls-monitoring"]
-    Rgc12["contract-obligation-extraction"]
-    H4["data-quality-governance"]
-    Cop2["exam-rfi-orchestrator"]
-    Aud1["internal-audit-lifecycle"]
-    Aud3["issue-remediation-capa"]
-    Mrm1["model-risk-validation"]
-    Rgc7["obligations-control-mapping"]
-    Rgc9["operational-resilience-mapping"]
-    Erm1["rcsa-kri-erm"]
-    Rgc8["third-party-risk-ddq"]
-    Cmp1["trade-comms-surveillance"]
+    ai_act_conformity_pack["ai-act-conformity-pack"]
+    architecture_validator["architecture-validator"]
+    conflicts_gifts_pad_register["conflicts-gifts-pad-register"]
+    consumer_duty_monitoring["consumer-duty-monitoring"]
+    continuous_controls_monitoring["continuous-controls-monitoring"]
+    contract_obligation_extraction["contract-obligation-extraction"]
+    data_quality_governance["data-quality-governance"]
+    exam_rfi_orchestrator["exam-rfi-orchestrator"]
+    internal_audit_lifecycle["internal-audit-lifecycle"]
+    issue_remediation_capa["issue-remediation-capa"]
+    model_risk_validation["model-risk-validation"]
+    obligations_control_mapping["obligations-control-mapping"]
+    operational_resilience_mapping["operational-resilience-mapping"]
+    rcsa_kri_erm["rcsa-kri-erm"]
+    third_party_risk_ddq["third-party-risk-ddq"]
+    trade_comms_surveillance["trade-comms-surveillance"]
   end
   subgraph OPS["Operations and back office"]
-    F5["control-room-handover"]
-    F2["disputes-chargebacks-manager"]
-    F1["recon-breaks-engine"]
+    control_room_handover["control-room-handover"]
+    disputes_chargebacks_manager["disputes-chargebacks-manager"]
+    recon_breaks_engine["recon-breaks-engine"]
   end
   subgraph WRK["Workforce and analyst productivity"]
-    H5["code-api-migration"]
-    H2["hr-policy-answers"]
-    H3["itsm-servicedesk-triage"]
-    H6["meeting-knowledge-capture"]
-    H1["nl2sql-analytics"]
+    code_api_migration["code-api-migration"]
+    hr_policy_answers["hr-policy-answers"]
+    itsm_servicedesk_triage["itsm-servicedesk-triage"]
+    meeting_knowledge_capture["meeting-knowledge-capture"]
+    nl2sql_analytics["nl2sql-analytics"]
   end
   FCC ==> PLAT
   SVC ==> PLAT
@@ -321,50 +321,51 @@ flowchart LR
   RGC ==> PLAT
   OPS ==> PLAT
   WRK ==> PLAT
-  Rgc14 --> Rgc7
-  Mkt2 --> Mkt1
-  Rgc11 --> Cmp1
-  Rgc15 --> Doc6
-  Rgc15 --> E3
-  Rgc15 --> F2
-  Rgc15 --> Mkt5
-  Aud2 --> Aud1
-  Aud2 --> Aud3
-  Aud2 --> Rgc7
-  Rgc12 --> Rgc7
-  Rgc12 --> Rgc8
-  F5 --> F1
-  E3 --> E1
-  Mkt3 --> Mkt6
-  Doc7 --> Doc2
-  H4 --> H1
-  Cop2 --> Rgc7
-  Aud1 --> Aud2
-  Aud1 --> Aud3
-  Aud1 --> Rgc7
-  Aud3 --> Doc6
-  Aud3 --> Aud2
-  Aud3 --> Aud1
-  Aud3 --> Erm1
-  Hrz9 --> Doc1
-  Hrz9 --> Doc3
-  Hrz9 --> Doc2
-  Hrz9 --> Doc5
-  Hrz9 --> Doc4
-  Mrm1 --> Rgc7
-  Mkt5 --> Mkt6
-  Rgc7 --> Rsk3
-  Rgc7 --> Aud2
-  Rgc7 --> Rgc12
-  Rgc7 --> Erm1
-  Rgc9 --> Rgc8
-  Mkt4 --> Mkt2
-  E5 --> Mkt6
-  Erm1 --> Aud3
-  Erm1 --> Rgc7
-  Rgc8 --> Rgc12
-  Cmp1 --> Rgc11
-  Cmp1 --> E3
+  ai_act_conformity_pack --> obligations_control_mapping
+  campaign_planner --> market_intelligence
+  conflicts_gifts_pad_register --> trade_comms_surveillance
+  consumer_duty_monitoring --> complaints_review
+  consumer_duty_monitoring --> conversation_qa_scorecard
+  consumer_duty_monitoring --> disputes_chargebacks_manager
+  consumer_duty_monitoring --> next_best_action
+  continuous_controls_monitoring --> internal_audit_lifecycle
+  continuous_controls_monitoring --> issue_remediation_capa
+  continuous_controls_monitoring --> obligations_control_mapping
+  contract_obligation_extraction --> obligations_control_mapping
+  contract_obligation_extraction --> third_party_risk_ddq
+  control_room_handover --> disputes_chargebacks_manager
+  control_room_handover --> recon_breaks_engine
+  conversation_qa_scorecard --> contact_centre_conversations
+  creative_studio --> marketing_compliance_gate
+  credit_portfolio_early_warning --> credit_memo_drafting
+  data_quality_governance --> nl2sql_analytics
+  exam_rfi_orchestrator --> obligations_control_mapping
+  internal_audit_lifecycle --> continuous_controls_monitoring
+  internal_audit_lifecycle --> issue_remediation_capa
+  internal_audit_lifecycle --> obligations_control_mapping
+  issue_remediation_capa --> complaints_review
+  issue_remediation_capa --> continuous_controls_monitoring
+  issue_remediation_capa --> internal_audit_lifecycle
+  issue_remediation_capa --> rcsa_kri_erm
+  journey_portal --> cdd_sow_research
+  journey_portal --> cio_advisory
+  journey_portal --> credit_memo_drafting
+  journey_portal --> loan_document_intelligence
+  journey_portal --> trade_finance_checker
+  model_risk_validation --> obligations_control_mapping
+  next_best_action --> marketing_compliance_gate
+  obligations_control_mapping --> architecture_validator
+  obligations_control_mapping --> continuous_controls_monitoring
+  obligations_control_mapping --> contract_obligation_extraction
+  obligations_control_mapping --> rcsa_kri_erm
+  operational_resilience_mapping --> third_party_risk_ddq
+  performance_marketing_optimisation --> campaign_planner
+  proactive_service_outreach --> marketing_compliance_gate
+  rcsa_kri_erm --> issue_remediation_capa
+  rcsa_kri_erm --> obligations_control_mapping
+  third_party_risk_ddq --> contract_obligation_extraction
+  trade_comms_surveillance --> conflicts_gifts_pad_register
+  trade_comms_surveillance --> conversation_qa_scorecard
 ```
 
 ### The standing rules
@@ -394,7 +395,7 @@ for the hybrid path, and least-privilege IAM.
 | [`agent-registry`](https://github.com/portable-genai/agent-registry) | 35 |
 | [`enterprise-knowledge-base`](https://github.com/portable-genai/enterprise-knowledge-base) | 32 |
 | [`human-review-console`](https://github.com/portable-genai/human-review-console) | 17 |
-| [`compliance-advisory`](https://github.com/portable-genai/compliance-advisory) | 17 |
+| [`compliance-advisory`](https://github.com/portable-genai/compliance-advisory) | 16 |
 
 Adopting one vertical therefore means standing up the platform services it names,
 not just cloning one repository. The second vertical is much cheaper than the first.
@@ -426,7 +427,7 @@ resolved through a code first.
 | [`contact-centre-conversations`](https://github.com/portable-genai/contact-centre-conversations) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`enterprise-knowledge-base`](https://github.com/portable-genai/enterprise-knowledge-base), [`agent-registry`](https://github.com/portable-genai/agent-registry), [`agent-observability`](https://github.com/portable-genai/agent-observability), [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate) |
 | [`continuous-controls-monitoring`](https://github.com/portable-genai/continuous-controls-monitoring) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`agent-registry`](https://github.com/portable-genai/agent-registry), [`agent-observability`](https://github.com/portable-genai/agent-observability), [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate), [`obligations-control-mapping`](https://github.com/portable-genai/obligations-control-mapping), [`compliance-advisory`](https://github.com/portable-genai/compliance-advisory), [`issue-remediation-capa`](https://github.com/portable-genai/issue-remediation-capa), [`internal-audit-lifecycle`](https://github.com/portable-genai/internal-audit-lifecycle) |
 | [`contract-obligation-extraction`](https://github.com/portable-genai/contract-obligation-extraction) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`enterprise-knowledge-base`](https://github.com/portable-genai/enterprise-knowledge-base), [`agent-registry`](https://github.com/portable-genai/agent-registry), [`agent-observability`](https://github.com/portable-genai/agent-observability), [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate), [`obligations-control-mapping`](https://github.com/portable-genai/obligations-control-mapping), [`third-party-risk-ddq`](https://github.com/portable-genai/third-party-risk-ddq) |
-| [`control-room-handover`](https://github.com/portable-genai/control-room-handover) | [`agent-observability`](https://github.com/portable-genai/agent-observability), [`recon-breaks-engine`](https://github.com/portable-genai/recon-breaks-engine), `procure-to-pay` (planned) |
+| [`control-room-handover`](https://github.com/portable-genai/control-room-handover) | [`agent-observability`](https://github.com/portable-genai/agent-observability), [`recon-breaks-engine`](https://github.com/portable-genai/recon-breaks-engine), [`disputes-chargebacks-manager`](https://github.com/portable-genai/disputes-chargebacks-manager), `order-returns-rma` (planned), `procure-to-pay` (planned) |
 | [`conversation-qa-scorecard`](https://github.com/portable-genai/conversation-qa-scorecard) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`agent-observability`](https://github.com/portable-genai/agent-observability), [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate), [`contact-centre-conversations`](https://github.com/portable-genai/contact-centre-conversations) |
 | [`creative-studio`](https://github.com/portable-genai/creative-studio) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`enterprise-knowledge-base`](https://github.com/portable-genai/enterprise-knowledge-base), [`agent-registry`](https://github.com/portable-genai/agent-registry), [`agent-observability`](https://github.com/portable-genai/agent-observability), [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate), [`marketing-compliance-gate`](https://github.com/portable-genai/marketing-compliance-gate), [`human-review-console`](https://github.com/portable-genai/human-review-console) |
 | [`credit-memo-drafting`](https://github.com/portable-genai/credit-memo-drafting) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`enterprise-knowledge-base`](https://github.com/portable-genai/enterprise-knowledge-base), [`agent-registry`](https://github.com/portable-genai/agent-registry), [`agent-observability`](https://github.com/portable-genai/agent-observability), [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate), [`human-review-console`](https://github.com/portable-genai/human-review-console) |
@@ -449,7 +450,7 @@ resolved through a code first.
 | [`model-risk-validation`](https://github.com/portable-genai/model-risk-validation) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`enterprise-knowledge-base`](https://github.com/portable-genai/enterprise-knowledge-base), [`agent-registry`](https://github.com/portable-genai/agent-registry), [`agent-observability`](https://github.com/portable-genai/agent-observability), [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate), [`compliance-advisory`](https://github.com/portable-genai/compliance-advisory), [`obligations-control-mapping`](https://github.com/portable-genai/obligations-control-mapping) |
 | [`next-best-action`](https://github.com/portable-genai/next-best-action) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`enterprise-knowledge-base`](https://github.com/portable-genai/enterprise-knowledge-base), [`agent-registry`](https://github.com/portable-genai/agent-registry), [`agent-observability`](https://github.com/portable-genai/agent-observability), [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate), [`marketing-compliance-gate`](https://github.com/portable-genai/marketing-compliance-gate), [`human-review-console`](https://github.com/portable-genai/human-review-console) |
 | [`nl2sql-analytics`](https://github.com/portable-genai/nl2sql-analytics) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`agent-registry`](https://github.com/portable-genai/agent-registry), [`agent-observability`](https://github.com/portable-genai/agent-observability), [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate) |
-| [`obligations-control-mapping`](https://github.com/portable-genai/obligations-control-mapping) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`enterprise-knowledge-base`](https://github.com/portable-genai/enterprise-knowledge-base), [`agent-registry`](https://github.com/portable-genai/agent-registry), [`agent-observability`](https://github.com/portable-genai/agent-observability), [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate), [`compliance-advisory`](https://github.com/portable-genai/compliance-advisory), [`compliance-advisory`](https://github.com/portable-genai/compliance-advisory), [`contract-obligation-extraction`](https://github.com/portable-genai/contract-obligation-extraction), [`architecture-validator`](https://github.com/portable-genai/architecture-validator), [`continuous-controls-monitoring`](https://github.com/portable-genai/continuous-controls-monitoring), [`rcsa-kri-erm`](https://github.com/portable-genai/rcsa-kri-erm) |
+| [`obligations-control-mapping`](https://github.com/portable-genai/obligations-control-mapping) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`enterprise-knowledge-base`](https://github.com/portable-genai/enterprise-knowledge-base), [`agent-registry`](https://github.com/portable-genai/agent-registry), [`agent-observability`](https://github.com/portable-genai/agent-observability), [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate), [`compliance-advisory`](https://github.com/portable-genai/compliance-advisory), [`contract-obligation-extraction`](https://github.com/portable-genai/contract-obligation-extraction), [`architecture-validator`](https://github.com/portable-genai/architecture-validator), [`continuous-controls-monitoring`](https://github.com/portable-genai/continuous-controls-monitoring), [`rcsa-kri-erm`](https://github.com/portable-genai/rcsa-kri-erm) |
 | [`onprem-dlp`](https://github.com/portable-genai/onprem-dlp) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`agent-observability`](https://github.com/portable-genai/agent-observability) |
 | [`operational-resilience-mapping`](https://github.com/portable-genai/operational-resilience-mapping) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`enterprise-knowledge-base`](https://github.com/portable-genai/enterprise-knowledge-base), [`agent-registry`](https://github.com/portable-genai/agent-registry), [`agent-observability`](https://github.com/portable-genai/agent-observability), [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate), [`third-party-risk-ddq`](https://github.com/portable-genai/third-party-risk-ddq), `breach-reportability-assessor` (planned) |
 | [`performance-marketing-optimisation`](https://github.com/portable-genai/performance-marketing-optimisation) | [`agent-guardrail-gateway`](https://github.com/portable-genai/agent-guardrail-gateway), [`agent-registry`](https://github.com/portable-genai/agent-registry), [`agent-observability`](https://github.com/portable-genai/agent-observability), [`model-quality-gate`](https://github.com/portable-genai/model-quality-gate), [`campaign-planner`](https://github.com/portable-genai/campaign-planner), [`human-review-console`](https://github.com/portable-genai/human-review-console) |
