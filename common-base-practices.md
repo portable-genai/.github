@@ -269,10 +269,16 @@ asserting the Secure attribute.
 Offline/on-prem audit is hash-chained over canonical JSON, append-only enforced in the
 store (triggers), with an external head anchor for truncation detection, open-format
 export/restore that re-verifies every link, and a docstring stating exactly which tamper
-classes are and are not detected. Managed profiles use a locked WORM bucket.
-Here: `adapters/local/audit.py`; `cdd-sow audit verify|export|restore`.
+classes are and are not detected. Managed profiles ship a WORM-capable audit trail; a
+production deployment locks it, and the reference deployment declines the lock and says so.
+The lock is irreversible, so it takes NO DEFAULT under one fleet-wide name, `worm_locked`: a
+plan refuses until the deployment states it, and the retention floor binds only when the lock
+is on, so declining it is a supported posture rather than a weakened one.
+Here: `adapters/local/audit.py`; `cdd-sow audit verify|export|restore`;
+`infra/terraform/variables.tf` `worm_locked`; `tests/unit/test_irreversible_controls_are_named.py`.
 **Check:** the audit module documents its threat coverage; a test doctors a record and
-verify catches it; a test truncates the tail and the anchor catches it.
+verify catches it; a test truncates the tail and the anchor catches it; `worm_locked` carries
+no `default` and the deployment tfvars states it either way.
 
 **C10. No secret values in the repo; config names env vars, never stores secrets.** [all]
 Here: `config/settings.yaml` stores only `*_env` names; values read at construction and
@@ -319,11 +325,14 @@ contains no build toolchain.
 
 **D5. Deploy-time enforcement of residency and sovereignty, parameterised not forked.** [infra]
 Region pinned and validated fail-fast; Org Policy resource-location allowlist; CMEK with
-explicit per-service bindings; VPC-SC dry-run-first; WORM log bucket with retention; a
+explicit per-service bindings; VPC-SC dry-run-first; a WORM-capable log bucket with
+retention, whose irreversible lock takes no default so a production deployment locks it and
+the reference deployment declines it in writing; a
 second enterprise/region is a tfvars file, never a repo fork; Terraform fmt+validate in
 CI with no cloud credentials.
 Here: `infra/terraform/*`, ci.yaml terraform job, ARCHITECTURE PT-13.
-**Check:** CI validates Terraform offline; region/tenant appear only as variables.
+**Check:** CI validates Terraform offline; region/tenant appear only as variables; no
+irreversible control has a default.
 
 ## E. Quality gates and evals
 
