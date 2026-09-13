@@ -97,10 +97,15 @@ has not checked anything.
 
 ## The shared practice checks
 
-Every repository scores itself against the numbered checks A1 to G7 defined in
-[`common-base-practices.md`](common-base-practices.md), and records its verdict in its own
-`docs/practices-audit.md`, including the checks it does not pass. When you close a check,
-update that file with the evidence, and say what you observed failing first.
+Every repository is checkable against the numbered checks A1 to G7 defined in
+[`common-base-practices.md`](common-base-practices.md). Where a repository carries a
+`docs/practices-audit.md`, it records that repository's verdict including the checks it does
+not pass: when you close a check, update that file with the evidence, and say what you
+observed failing first.
+
+**The file is no longer required in every repository, as of 2026-09-13.** A scorecard that
+ships pre-filled by a scaffold asserts a verdict nobody reached, and fifty of them made the
+claim harder to trust rather than easier. Write one when an audit has been run.
 
 ## Versions and dependencies
 
@@ -133,4 +138,4 @@ Public, and the golden source for anything stated twice:
 | [The organization front page](https://github.com/portable-genai) | What each repository does, the dependency graph and the rules behind it, the numbered principles |
 | [`common-base-practices.md`](common-base-practices.md) | The A1 to G7 check definitions |
 | [`SECURITY.md`](SECURITY.md) | Reporting a vulnerability, what is enforced, what assurance does not exist |
-| Each repository's `docs/practices-audit.md` | That repository's verdict against the checks |
+| A repository's `docs/practices-audit.md`, where it has one | That repository's verdict against the checks, from an audit that was actually run |

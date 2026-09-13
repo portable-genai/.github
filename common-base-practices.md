@@ -458,11 +458,18 @@ Here: AGENTS.md declares the order; SPEC §9 updated when the feature shipped.
 shipped feature still marked unbuilt is a finding.
 
 **G2. Compliance is a mapping table with evidence pointers, plus an adopter-owned
-regulator crosswalk.** [all]
+regulator crosswalk.** [launch set]
 Every internal principle maps to a concrete control with file references; a per-regulator
 appendix (home regulator filled in as the template) is explicitly adopter-owned.
 Here: `COMPLIANCE.md` P-01..P-13/R1..R8 + MAS 626 crosswalk appendix.
-**Check:** each mapping row names files that exist; the crosswalk states who owns it.
+
+**Scoped to the launch set on 2026-09-13, from `[all]`.** The mapping is what a buyer is
+shown, so it is required where a buyer is taken rather than in every repository in the
+catalog. A reference build mandating a principle-to-control table fleet-wide was producing
+documents nobody reads against deployments nobody makes. Any repository may keep one, and a
+fork that needs the mapping everywhere restores the `[all]` tag; what changed is the default.
+**Check:** on a launch-set repository, each mapping row names files that exist and the
+crosswalk states who owns it.
 
 **G3. A documented, mechanised fork path.** [all]
 An ADOPTING guide with the kernel/vertical boundary, a core-vs-adopter-owned file list,
@@ -509,5 +516,9 @@ Here: an AGENTS.md convention; applied across docs.
 4. FAILs on A1-A6, C1-C5, D1-D3 and E1 are the load-bearing ones: they break the
    catalog's shared guarantees (portability, tenancy, supply chain, promotion gating).
    The rest are quality-of-adoption.
-5. Record the scorecard in the audited repo (e.g. `docs/practices-audit.md`) and track the
-   remaining gaps wherever per-system state is held.
+5. Record the scorecard wherever the audit's findings are acted on, and track the remaining
+   gaps wherever per-system state is held. **`docs/practices-audit.md` stopped being a
+   required file on 2026-09-13.** Mandating it fleet-wide meant every repository shipped a
+   per-check verdict on the day it was scaffolded, pre-filled with what a template render can
+   honestly claim, which is a verdict nobody had reached. An audit that was actually run is
+   worth recording; an empty scorecard asserting it was is worse than no file.
